@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta data-composition-id="root" data-width="1080" data-height="1920">
+  <title>Lumin Gum - The Whitening Cheat Code</title>
+  
+  <!-- Typography & Styling Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Global Reset & Canvas Bounds */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: #000;
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 9:16 Studio Stage Viewport */
+    #stage {
+      position: relative;
+      width: 1080px;
+      height: 1920px;
+      background: #0d0d0d;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Clip Layers & Standard Setup */
+    .clip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      visibility: hidden;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Cinematic Enhancements (Vignette & Gradient overlays for text readability) */
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .bottom-gradient {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 35%;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Elegant Text Styling & Animation Containers */
+    .caption-container {
+      position: absolute;
+      bottom: 220px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .caption-pill {
+      display: inline-block;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      padding: 24px 44px;
+      border-radius: 40px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    }
+
+    .caption-text {
+      color: #ffffff;
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .highlight-yellow {
+      color: #FFE500;
+      font-weight: 900;
+    }
+
+    .highlight-cyan {
+      color: #00F0FF;
+      font-weight: 900;
+    }
+
+    /* Split Screen Layout (Scene 3) */
+    .split-screen {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .split-panel {
+      position: relative;
+      width: 50%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .split-border {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 6px;
+      height: 100%;
+      background: #ffffff;
+      z-index: 5;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Day Badges for Split Screen */
+    .day-badge {
+      position: absolute;
+      top: 150px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      color: #000;
+      font-size: 38px;
+      font-weight: 900;
+      padding: 14px 35px;
+      border-radius: 12px;
+      letter-spacing: 1px;
+      z-index: 6;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      text-transform: uppercase;
+    }
+
+    .day-badge.right-badge {
+      background: #00F0FF;
+      color: #000;
+    }
+
+    /* Call To Action Custom Elements */
+    .cta-container {
+      position: absolute;
+      bottom: 250px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      z-index: 10;
+      text-align: center;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, #00F0FF 0%, #0077FF 100%);
+      padding: 35px 50px;
+      border-radius: 30px;
+      box-shadow: 0 20px 45px rgba(0, 240, 255, 0.45);
+      border: 3px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .cta-text {
+      color: #ffffff;
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+      text-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+
+    .finger-pointer {
+      font-size: 75px;
+      margin-top: 30px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <main data-hf-id="hf-swrp" id="stage" data-composition-id="root" data-start="0" data-width="1080" data-height="1920">
+<video data-hf-id="hf-rs9x" id="vid-1" class="clip media-layer" data-start="0" data-duration="2.5" data-track-index="0" src="assets/1781432445316-video__18_.mp4" style="width: 100%; height: 100%; object-fit: cover; position: absolute;" muted playsinline preload="metadata"></video>
+<video data-hf-id="hf-q3v7" id="vid-2" class="clip media-layer" data-start="2.5" data-duration="3.0" data-track-index="0" src="assets/1781432445341-831159b4-87f4-4669-a6d9-38e6d92bfef0.mp4" style="width: 100%; height: 100%; object-fit: cover; position: absolute;" muted playsinline preload="metadata"></video>
+<video data-hf-id="hf-d83h" id="vid-3-left" class="clip media-layer" data-start="5.5" data-duration="4.0" data-track-index="0" src="assets/1781432445361-b_she_puts_her_arm_dow.mp4" style="width: 100%; height: 100%; object-fit: cover; position: absolute;" muted playsinline preload="metadata"></video>
+<video data-hf-id="hf-nar2" id="vid-3-right" class="clip media-layer" data-start="9.5" data-duration="3.0" data-track-index="0" src="assets/1781432445434-grok-video-1ef3726e-6002-4928-a8ee-98696dde1977.mp4" style="width: 100%; height: 100%; object-fit: cover; position: absolute;" muted playsinline preload="metadata"></video>
+<video data-hf-id="hf-lrin" id="vid-4" class="clip media-layer" data-start="12.5" data-duration="2.5" data-track-index="0" src="assets/1781432445477-grok-video-72d787c3-5d5a-4e79-bda0-7f4f3c87bea2.mp4" style="width: 100%; height: 100%; object-fit: cover; position: absolute;" muted playsinline preload="metadata"></video>
+    
+    <!-- ========================================== -->
+    <!-- TRACK 0: VIDEO CLIPS (0.0s - 15.0s)        -->
+    <!-- ========================================== -->
+
+    <!-- SCENE 1: Whitening attempt / Disappointment (0.0s - 2.5s) -->
+    <section data-hf-id="hf-g6qd" class="clip" id="scene-1" data-start="0" data-duration="2.5" data-track-index="2">
+
+      
+      <div data-hf-id="hf-6460" class="vignette" id="vignette-1"></div>
+      <div data-hf-id="hf-ivl2" class="bottom-gradient" id="grad-1"></div>
+    
+</section>
+
+    <!-- SCENE 2: Popping Lumin Gum / Smiling (2.5s - 5.5s) -->
+    <section data-hf-id="hf-esnb" class="clip" id="scene-2" data-start="2.5" data-duration="3.0" data-track-index="0">
+
+      
+      <div data-hf-id="hf-gznn" class="vignette" id="vignette-2"></div>
+      <div data-hf-id="hf-exh1" class="bottom-gradient" id="grad-2"></div>
+    
+</section>
+
+    <!-- SCENE 3: Day 1 vs Day 7 Comparison / Split Screen (5.5s - 9.5s) -->
+    <section data-hf-id="hf-fdvk" class="clip" id="scene-3" data-start="5.5" data-duration="4.0" data-track-index="0">
+
+      <div data-hf-id="hf-74dc" class="split-screen" id="split-screen-container">
+        <!-- Left Panel: Day 1 -->
+        <div data-hf-id="hf-j2ez" class="split-panel" id="panel-left">
+          <div data-hf-id="hf-zh08" class="day-badge" id="badge-day1">Day 1</div>
+          
+        </div>
+        <!-- Vertical Split Accent Border -->
+        <div data-hf-id="hf-kgno" class="split-border" id="panel-border"></div>
+        <!-- Right Panel: Day 7 -->
+        <div data-hf-id="hf-zbpi" class="split-panel" id="panel-right">
+          <div data-hf-id="hf-ahy4" class="day-badge right-badge" id="badge-day7">Day 7 ✨</div>
+          
+        </div>
+      </div>
+      <div data-hf-id="hf-d1jm" class="vignette" id="vignette-3"></div>
+      <div data-hf-id="hf-e5t8" class="bottom-gradient" id="grad-3"></div>
+    
+</section>
+
+    <!-- SCENE 4: Hero Shot / Smile and Pack (9.5s - 12.5s) -->
+    <section data-hf-id="hf-x0qq" class="clip" id="scene-4" data-start="9.5" data-duration="3.0" data-track-index="0">
+
+      
+      <div data-hf-id="hf-u9tx" class="vignette" id="vignette-4"></div>
+      <div data-hf-id="hf-1nar" class="bottom-gradient" id="grad-4"></div>
+    
+</section>
+
+    <!-- SCENE 5: End Frame - Joyful smiling close-up (12.5s - 15.0s) -->
+    <section data-hf-id="hf-xjml" class="clip" id="scene-5" data-start="12.5" data-duration="2.5" data-track-index="0">
+
+      
+      <div data-hf-id="hf-ti64" class="vignette" id="vignette-5"></div>
+      <div data-hf-id="hf-xp6q" class="bottom-gradient" id="grad-5"></div>
+    
+</section>
+
+    <!-- ========================================== -->
+    <!-- TRACK 2: TEXT CAPTIONS (0.0s - 15.0s)      -->
+    <!-- ========================================== -->
+
+    <!-- CAPTION 1 (0.0s - 2.5s) -->
+    <div data-hf-id="hf-1f8c" class="clip" id="caption-clip-1" data-start="0" data-duration="2.5" data-track-index="2">
+      <div data-hf-id="hf-vg2e" class="caption-container" id="cap-container-1">
+        <div data-hf-id="hf-zvlr" class="caption-pill" id="pill-1">
+          <p data-hf-id="hf-2f8o" class="caption-text" id="text-1">I tried whitening for <span data-hf-id="hf-pvie" class="highlight-yellow" id="hl-1">7 days...</span> 🦷</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAPTION 2 (2.5s - 5.5s) -->
+    <div data-hf-id="hf-dw3o" class="clip" id="caption-clip-2" data-start="2.5" data-duration="3.0" data-track-index="2">
+      <div data-hf-id="hf-rhyd" class="caption-container" id="cap-container-2">
+        <div data-hf-id="hf-r7pw" class="caption-pill" id="pill-2">
+          <p data-hf-id="hf-ljlx" class="caption-text" id="text-2">Stop wasting <span data-hf-id="hf-nlgl" class="highlight-yellow" id="hl-2">$$$</span> on strips! ❌</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAPTION 3 (5.5s - 9.5s) -->
+    <div data-hf-id="hf-braj" class="clip" id="caption-clip-3" data-start="5.5" data-duration="4.0" data-track-index="2">
+      <div data-hf-id="hf-qqak" class="caption-container" id="cap-container-3">
+        <div data-hf-id="hf-rzdp" class="caption-pill" id="pill-3">
+          <p data-hf-id="hf-egcm" class="caption-text" id="text-3">Day 1 <span data-hf-id="hf-n68s" class="highlight-cyan" id="hl-3-1">vs.</span> Day 7 ✨</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAPTION 4 (9.5s - 12.5s) -->
+    <div data-hf-id="hf-xw9z" class="clip" id="caption-clip-4" data-start="9.5" data-duration="3.0" data-track-index="2">
+      <div data-hf-id="hf-e7s3" class="caption-container" id="cap-container-4">
+        <div data-hf-id="hf-ar3e" class="caption-pill" id="pill-4">
+          <p data-hf-id="hf-yzdg" class="caption-text" id="text-4">Lumin Gum is the <span data-hf-id="hf-oaj0" class="highlight-cyan" id="hl-4">cheat code</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAPTION 5: CTA (12.5s - 15.0s) -->
+    <div data-hf-id="hf-2p5g" class="clip" id="caption-clip-5" data-start="12.5" data-duration="2.5" data-track-index="2">
+      <div data-hf-id="hf-t604" class="cta-container" id="cta-container-5">
+        <div data-hf-id="hf-8szp" class="cta-button" id="btn-5">
+          <span data-hf-id="hf-0219" class="cta-text" id="text-5">Comment "BRIGHT"</span>
+        </div>
+        <div data-hf-id="hf-21ew" class="finger-pointer" id="finger-5">👇</div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TRACK 1: BACKGROUND MUSIC                  -->
+    <!-- ========================================== -->
+    <audio data-hf-id="hf-jceh" class="clip" id="bg-music" data-start="0" data-duration="15" data-track-index="1" src="https://cdn.pixabay.com/audio/2022/03/24/audio_03d2f21132.mp3" preload="auto"></audio>
+
+  </main>
+
+  <!-- GSAP Animation Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  
+  <script>
+    // Register timeline to the compilation system
+    window.__timelines = window.__timelines || {};
+    
+    const tl = gsap.timeline({ paused: true });
+    
+    // Total duration of the composite sequence is exactly 15 seconds
+    const totalDuration = 15.0;
+
+    // SCENE 1 (0.0s - 2.5s)
+    tl.set("#scene-1", { visibility: "visible", opacity: 0 }, 0)
+      .to("#scene-1", { opacity: 1, duration: 0.3, ease: "power2.out" }, 0)
+      .fromTo("#vid-1", { scale: 1.05 }, { scale: 1.0, duration: 2.5, ease: "none" }, 0)
+      .to("#scene-1", { opacity: 0, duration: 0.3, ease: "power2.inOut" }, 2.2);
+
+    // CAPTION 1 (0.0s - 2.5s)
+    tl.set("#caption-clip-1", { visibility: "visible", opacity: 0 }, 0)
+      .to("#caption-clip-1", { opacity: 1, duration: 0.4, ease: "back.out(1.2)" }, 0.2)
+      .fromTo("#pill-1", { y: 60, scale: 0.9 }, { y: 0, scale: 1.0, duration: 0.4, ease: "back.out(1.2)" }, 0.2)
+      .to("#caption-clip-1", { opacity: 0, duration: 0.3, ease: "power2.in" }, 2.2);
+
+
+    // SCENE 2 (2.5s - 5.5s)
+    tl.set("#scene-2", { visibility: "visible", opacity: 0 }, 2.4)
+      .to("#scene-2", { opacity: 1, duration: 0.3, ease: "power2.out" }, 2.4)
+      .fromTo("#vid-2", { scale: 1.0 }, { scale: 1.05, duration: 3.0, ease: "none" }, 2.4)
+      .to("#scene-2", { opacity: 0, duration: 0.3, ease: "power2.inOut" }, 5.2);
+
+    // CAPTION 2 (2.5s - 5.5s)
+    tl.set("#caption-clip-2", { visibility: "visible", opacity: 0 }, 2.4)
+      .to("#caption-clip-2", { opacity: 1, duration: 0.4, ease: "back.out(1.2)" }, 2.6)
+      .fromTo("#pill-2", { y: 60, scale: 0.9 }, { y: 0, scale: 1.0, duration: 0.4, ease: "back.out(1.2)" }, 2.6)
+      .to("#caption-clip-2", { opacity: 0, duration: 0.3, ease: "power2.in" }, 5.2);
+
+
+    // SCENE 3: Split-Screen Comparison (5.5s - 9.5s)
+    tl.set("#scene-3", { visibility: "visible", opacity: 0 }, 5.4)
+      .to("#scene-3", { opacity: 1, duration: 0.3, ease: "power2.out" }, 5.4)
+      // Visual accent zoom on panels
+      .fromTo("#panel-left", { scale: 1.1 }, { scale: 1.0, duration: 4.0, ease: "power1.out" }, 5.4)
+      .fromTo("#panel-right", { scale: 1.1 }, { scale: 1.0, duration: 4.0, ease: "power1.out" }, 5.4)
+      // Badges popping up
+      .fromTo("#badge-day1", { scale: 0, rotation: -10 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(1.5)" }, 5.8)
+      .fromTo("#badge-day7", { scale: 0, rotation: 10 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(1.5)" }, 6.1)
+      .to("#scene-3", { opacity: 0, duration: 0.3, ease: "power2.inOut" }, 9.2);
+
+    // CAPTION 3 (5.5s - 9.5s)
+    tl.set("#caption-clip-3", { visibility: "visible", opacity: 0 }, 5.4)
+      .to("#caption-clip-3", { opacity: 1, duration: 0.4, ease: "back.out(1.2)" }, 5.6)
+      .fromTo("#pill-3", { y: 60, scale: 0.9 }, { y: 0, scale: 1.0, duration: 0.4, ease: "back.out(1.2)" }, 5.6)
+      .to("#caption-clip-3", { opacity: 0, duration: 0.3, ease: "power2.in" }, 9.2);
+
+
+    // SCENE 4: Hero Shot (9.5s - 12.5s)
+    tl.set("#scene-4", { visibility: "visible", opacity: 0 }, 9.4)
+      .to("#scene-4", { opacity: 1, duration: 0.3, ease: "power2.out" }, 9.4)
+      .fromTo("#vid-4", { scale: 1.05 }, { scale: 1.0, duration: 3.0, ease: "none" }, 9.4)
+      .to("#scene-4", { opacity: 0, duration: 0.3, ease: "power2.inOut" }, 12.2);
+
+    // CAPTION 4 (9.5s - 12.5s)
+    tl.set("#caption-clip-4", { visibility: "visible", opacity: 0 }, 9.4)
+      .to("#caption-clip-4", { opacity: 1, duration: 0.4, ease: "back.out(1.2)" }, 9.6)
+      .fromTo("#pill-4", { y: 60, scale: 0.9 }, { y: 0, scale: 1.0, duration: 0.4, ease: "back.out(1.2)" }, 9.6)
+      .to("#caption-clip-4", { opacity: 0, duration: 0.3, ease: "power2.in" }, 12.2);
+
+
+    // SCENE 5: Joyful Smile & Call to Action (12.5s - 15.0s)
+    tl.set("#scene-5", { visibility: "visible", opacity: 0 }, 12.4)
+      .to("#scene-5", { opacity: 1, duration: 0.3, ease: "power2.out" }, 12.4)
+      .fromTo("#vid-5", { scale: 1.0 }, { scale: 1.06, duration: 2.6, ease: "none" }, 12.4);
+
+    // CAPTION 5: CTA Button & Animation (12.5s - 15.0s)
+    tl.set("#caption-clip-5", { visibility: "visible", opacity: 0 }, 12.4)
+      .to("#caption-clip-5", { opacity: 1, duration: 0.4, ease: "power2.out" }, 12.7)
+      .fromTo("#btn-5", { y: 80, scale: 0.8 }, { y: 0, scale: 1.0, duration: 0.5, ease: "back.out(1.4)" }, 12.7)
+      // Pulsing loop animation for the pointer (using finite repeat count to avoid rendering engine crash)
+      .fromTo("#finger-5", { y: -10 }, { y: 15, duration: 0.4, repeat: 5, yoyo: true, ease: "power1.inOut" }, 13.0);
+
+
+    // Finalize timeline duration and tie to root window compiler
+    tl.set({}, {}, totalDuration);
+    tl.set('.media-layer', { visibility: 'visible' }); window.__timelines['root'] = tl;
+  </script>
+</body>
+</html>

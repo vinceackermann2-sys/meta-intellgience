@@ -1,0 +1,6 @@
+{
+  "name": "Meta Intelligence Chat",
+  "description": "AI-powered chat with Facebook and Instagram data integration, featuring an interactive Visual Production Studio for stitching AI-generated videos, images, subtitles, and soundtracks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

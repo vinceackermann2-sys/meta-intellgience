@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@import "../node_modules/@hyperframes/studio/src/styles/studio.css";
+@source "../node_modules/@hyperframes/studio";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+* {
+  @apply border-slate-200;
+}
+body {
+  @apply bg-slate-50 text-slate-900;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+.markdown-body {
+  @apply text-slate-800 leading-relaxed;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  @apply font-black tracking-tight text-slate-900 mt-6 mb-4;
+}
+.markdown-body p {
+  @apply mb-4;
+}
+.markdown-body ul, .markdown-body ol {
+  @apply mb-4 pl-6 space-y-2;
+}
+.markdown-body ul {
+  list-style-type: none;
+}
+.markdown-body ul li {
+  position: relative;
+}
+.markdown-body ul li::before {
+  content: "•";
+  position: absolute;
+  left: -20px;
+  color: #cdd5e0;
+}
+.markdown-body li {
+  @apply mb-2;
+}
+.markdown-body code {
+  @apply px-1.5 py-0.5 bg-slate-100 rounded text-sm font-mono text-slate-900 border border-slate-200;
+}
+.markdown-body table {
+  @apply w-full text-left border-collapse rounded-xl overflow-hidden shadow-sm border border-slate-200 mb-6;
+}
+.markdown-body th {
+  @apply bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-wider py-3 px-4 border-b border-slate-200;
+}
+.markdown-body td {
+  @apply py-3 px-4 border-b border-slate-100 text-sm align-top;
+}
+.markdown-body tr:last-child td {
+  @apply border-0;
+}
+.markdown-body tr:nth-child(even) {
+  @apply bg-slate-50/50;
+}
+
+/* ==========================================================================
+   STUDIO CUSTOM COSMIC / INDIGO THEME OVERRIDES
+   ========================================================================== */
+
+.studio-theme-custom {
+  --hf-accent: #6366f1 !important; /* Elegant Indigo accent color */
+  --hf-heading: #f8fafc !important; /* Premium off-white Slate heading */
+  --hf-text-secondary: rgba(241, 245, 249, 0.75) !important;
+  --hf-text-tertiary: rgba(241, 245, 249, 0.5) !important;
+}
+
+/* Force our system fonts everywhere inside the custom studio */
+.studio-theme-custom,
+.studio-theme-custom * {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.studio-theme-custom code,
+.studio-theme-custom pre,
+.studio-theme-custom .cm-editor,
+.studio-theme-custom .cm-scroller,
+.studio-theme-custom .hf-loader-mono {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace !important;
+}
+
+/* Custom linear gradient highlights for progress bar fill, playhead and active nodes */
+.studio-theme-custom [style*="#3CE6AC"],
+.studio-theme-custom [style*="3ce6ac"] {
+  background-color: #6366f1 !important;
+  border-color: #6366f1 !important;
+}
+
+/* Custom play progress slider thumb and tracking line */
+.studio-theme-custom [style*="linear-gradient(90deg, var(--hf-accent, #3CE6AC), #2BBFA0)"] {
+  background: linear-gradient(90deg, #6366f1, #d946ef) !important; /* Cosmic transition */
+}
+
+/* Override playhead/progress thumb glow and shadow to use cosmic glow */
+.studio-theme-custom [style*="box-shadow: 0 0 6px rgba(60,230,172,0.4)"] {
+  background-color: #6366f1 !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.65), 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Style active Left Sidebar Tabs with glowing brand-specific styling (instead of dull gray) */
+.studio-theme-custom button[class*="bg-neutral-800"][class*="text-white"] {
+  background: linear-gradient(135deg, #6366f1, #818AC5) !important; /* Indigo to Cosmic Slate */
+  color: white !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Custom style for sidebar elements, folder headers, catalog items */
+.studio-theme-custom button[class*="hover:bg-neutral-900"]:hover,
+.studio-theme-custom button[class*="hover:text-neutral-200"]:hover {
+  color: #c084fc !important; /* Cozy purple/lavender hue on hover */
+}
+
+/* Loader progress fill bar to match Indigo/Fuchsia gradient */
+.studio-theme-custom .hf-loader-progress__fill {
+  background: linear-gradient(90deg, #6366f1, #d946ef) !important;
+}
+
+/* Transform the default Hyperframes SVG Logo stops dynamically to match Cosmic theme gradient! */
+.studio-theme-custom svg linearGradient#hf-g0 stop:first-child,
+.studio-theme-custom svg linearGradient#hf-g1 stop:first-child {
+  stop-color: #6366f1 !important; /* Indigo base */
+}
+.studio-theme-custom svg linearGradient#hf-g0 stop:last-child {
+  stop-color: #d946ef !important; /* Fuchsia flare */
+}
+.studio-theme-custom svg linearGradient#hf-g1 stop:last-child {
+  stop-color: #EDAFC4 !important; /* Pastel Cosmic Pink stop */
+}
+
+/* Subtle scrollbar improvements inside studio panels */
+.studio-theme-custom ::-webkit-scrollbar-thumb {
+  background-color: rgba(99, 102, 241, 0.25) !important;
+}
+.studio-theme-custom ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.45) !important;
+}
+

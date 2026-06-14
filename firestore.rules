@@ -1,0 +1,99 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives & Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation Blueprints
+    function isValidUser(data) {
+      return data.uid == request.auth.uid
+          && (data.get('email', null) == null || (data.email is string && data.email.size() <= 200))
+          && (data.get('displayName', null) == null || (data.displayName is string && data.displayName.size() <= 200))
+          && (data.get('photoURL', null) == null || (data.photoURL is string && data.photoURL.size() <= 2000))
+          && (data.get('fbConnected', null) == null || data.fbConnected is bool)
+          && (data.get('igConnected', null) == null || data.igConnected is bool)
+          && (data.get('fbData', null) == null || data.fbData is map)
+          && (data.get('igData', null) == null || data.igData is map)
+          && (data.get('updatedAt', null) == null || data.updatedAt == request.time);
+    }
+
+    function isValidChat(data) {
+      return data.userId == request.auth.uid
+          && data.title is string && data.title.size() <= 200
+          && (data.get('updatedAt', null) == null || data.updatedAt == request.time);
+    }
+
+    function isValidMessage(data) {
+      return data.role in ['user', 'assistant']
+          && data.content is string && data.content.size() <= 10000
+          && (data.get('timestamp', null) == null || data.timestamp == request.time);
+    }
+
+    function isValidAnalysis(data) {
+      return data.videoUrl is string && data.videoUrl.size() <= 2000
+          && data.analysis is string && data.analysis.size() <= 50000
+          && (data.get('processedAt', null) == null || data.processedAt == request.time);
+    }
+
+    function isValidSynthesis(data) {
+      return data.accountName is string && data.accountName.size() <= 200
+          && data.platform in ['facebook', 'instagram']
+          && data.winners is string && data.winners.size() <= 20000
+          && data.losers is string && data.losers.size() <= 20000
+          && (data.get('createdAt', null) == null || data.createdAt == request.time);
+    }
+
+    // Phase 4: Match Blocks
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isOwner(userId) && isValidUser(incoming());
+      
+      match /integrations/{platform} {
+        allow read, write: if isOwner(userId) && platform in ['facebook', 'instagram'];
+      }
+
+      match /analyses/{analysisId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidAnalysis(incoming());
+      }
+
+      match /syntheses/{synthesisId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSynthesis(incoming());
+      }
+    }
+
+    // Chats Collection
+    match /chats/{chatId} {
+      // 8. Secure List Queries: Evaluation against resource.data
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidChat(incoming());
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidChat(incoming())
+                     && incoming().userId == existing().userId; // Immutable Owner
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // Messages Sub-collection
+      match /messages/{messageId} {
+        // Master Gate Pattern: Fetch parent for ownership
+        allow read: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid;
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid 
+                      && isValidMessage(incoming());
+      }
+    }
+  }
+}

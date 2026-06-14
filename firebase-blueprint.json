@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and integration status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "fbConnected": { "type": "boolean" },
+        "igConnected": { "type": "boolean" },
+        "fbData": { "type": "object" },
+        "igData": { "type": "object" }
+      },
+      "required": ["uid", "email"]
+    },
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "A conversation between the user and AI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["id", "chatId", "role", "content"]
+    },
+    "FacebookIntegration": {
+      "title": "Facebook Integration",
+      "description": "Secure storage for Facebook OAuth tokens",
+      "type": "object",
+      "properties": {
+        "accessToken": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "InstagramIntegration": {
+      "title": "Instagram Integration",
+      "description": "Secure storage for Instagram OAuth tokens",
+      "type": "object",
+      "properties": {
+        "accessToken": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "VideoAnalysis": {
+      "title": "Video Analysis",
+      "description": "Saved multimodal analysis for a specific video",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "analysis": { "type": "string" },
+        "processedAt": { "type": "string", "format": "date-time" },
+        "metrics": { "type": "object" }
+      },
+      "required": ["videoUrl", "analysis", "processedAt"]
+    },
+    "AccountSynthesis": {
+      "title": "Account Synthesis",
+      "description": "Aggregated intelligence report for an account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountName": { "type": "string" },
+        "platform": { "type": "string" },
+        "winners": { "type": "string" },
+        "losers": { "type": "string" },
+        "videoCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["accountName", "platform", "winners", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Public user profiles"
+    },
+    "users/{userId}/integrations/facebook": {
+      "schema": "FacebookIntegration",
+      "description": "Private Facebook credentials"
+    },
+    "users/{userId}/integrations/instagram": {
+      "schema": "InstagramIntegration",
+      "description": "Private Instagram credentials"
+    },
+    "users/{userId}/analyses": {
+      "schema": "VideoAnalysis",
+      "description": "Stored video intelligence"
+    },
+    "users/{userId}/syntheses": {
+      "schema": "AccountSynthesis",
+      "description": "Stored account synthesis reports"
+    },
+    "chats": {
+      "schema": "ChatSession",
+      "description": "Chat conversations"
+    },
+    "chats/{chatId}/messages": {
+      "schema": "Message",
+      "description": "Messages within a session"
+    }
+  }
+}
