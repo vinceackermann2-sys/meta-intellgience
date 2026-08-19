@@ -6,6 +6,11 @@ on:
     paths:
       - "research25m/**"
       - ".github/workflows/brain25m.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research25m/**"
+      - ".github/workflows/brain25m.yml"
   workflow_dispatch:
 
 permissions:
