@@ -1,0 +1,54 @@
+name: brain25m-research
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research25m/**"
+      - ".github/workflows/brain25m.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experiment:
+    if: github.head_ref == 'research/brain25m-actions'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: transformer
+            seed: 41
+          - arch: transformer
+            seed: 42
+          - arch: plastic
+            seed: 41
+          - arch: plastic
+            seed: 42
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU PyTorch
+        run: python -m pip install --disable-pip-version-check --no-cache-dir torch
+      - name: Run matched 25M experiment
+        run: |
+          mkdir -p runs/${{ matrix.arch }}-${{ matrix.seed }}
+          python research25m/train.py \
+            --arch ${{ matrix.arch }} \
+            --seed ${{ matrix.seed }} \
+            --out runs/${{ matrix.arch }}-${{ matrix.seed }} \
+            --steps 220 --sft-steps 40 --pref-steps 20 \
+            --bs 2 --seqlen 128 --eval-every 50 --log-every 10
+      - name: Upload checkpoints and metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brain25m-${{ matrix.arch }}-${{ matrix.seed }}
+          path: runs/${{ matrix.arch }}-${{ matrix.seed }}
+          if-no-files-found: warn
+          retention-days: 30
