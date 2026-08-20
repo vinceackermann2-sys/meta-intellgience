@@ -25,28 +25,30 @@ def schema_candidates(d):
         for m in re.finditer(p,desc): vals.append(m.group(1).strip())
     return vals
 
-def classify(v,src,desc,query):
-    nv=norm(v); blob=' '.join([src,desc,query]).casefold()
-    if nv and nv in norm(desc): return 'description_contains_gold'
-    if nv and nv in norm(query): return 'query_contains_gold'
-    if nv and nv in norm(src): return 'annotation_source_contains_gold'
-    if isinstance(v,bool): return 'implicit_boolean'
-    if isinstance(v,(int,float)): return 'implicit_numeric'
-    if any(x in blob for x in ['first page','latest','most recent','default','if not','unspecified','fallback']): return 'implicit_policy_default'
-    return 'opaque_or_world_knowledge_default'
+def policy_candidates(name,d,required):
+    p=str(name); pl=p.lower().replace('_',''); typ=str(d.get('type','')).lower(); desc=str(d.get('description','')).lower(); optional=p not in required
+    vals=[]
+    if optional and typ in ('array','list'): vals.append([])
+    if optional and typ in ('string','str'): vals.append('')
+    if typ in ('bool','boolean'): vals.append(False)
+    if 'offset' in pl: vals.append(0)
+    if pl in ('page','pageindex') or ('page' in pl and 'index' in pl): vals.append(1)
+    if pl=='index' and ('latest' in desc or 'most recent' in desc or 'starting from 0' in desc or 'start from 0' in desc): vals.append(0)
+    if typ in ('int','integer','float','number') and ('starting from 0' in desc or 'start from 0' in desc) and ('latest' in desc or 'most recent' in desc): vals.append(0)
+    return vals
 
-cases=[]; counts=Counter(); total=0; covered=0
+total=0;base_hit=0;policy_added=0;still=[];by_type=Counter()
 for q in rows():
-    gold=((q.get('tool_call') or {}).get('arguments') or {})
-    gi=((q.get('tool_call') or {}).get('grounding_info') or {})
-    props=(((q.get('target_tool_schema') or {}).get('parameters') or {}).get('properties') or {})
+    gold=((q.get('tool_call') or {}).get('arguments') or {}); gi=((q.get('tool_call') or {}).get('grounding_info') or {})
+    params=((q.get('target_tool_schema') or {}).get('parameters') or {}); props=params.get('properties') or {}; required=set(params.get('required') or [])
     for k,v in gold.items():
         g=gi.get(k) or {}
         if str(g.get('type','')).casefold()!='default': continue
-        total+=1; d=props.get(k) or {}; cands=schema_candidates(d); hit=any(norm(x)==norm(v) for x in cands)
-        if hit: covered+=1; continue
-        src=str(g.get('source_text','')); desc=str(d.get('description','')); query=str(q.get('query',''))
-        cat=classify(v,src,desc,query); counts[cat]+=1
-        cases.append({'qa_id':q.get('qa_id'),'slot':k,'gold':v,'category':cat,'annotation_source':src[:260],'schema_description':desc[:260],'query':query[:220]})
-result={'stage':'Mem2Act unresolved-default dev audit','default_slots':total,'schema_candidate_covered':covered,'uncovered':len(cases),'uncovered_categories':dict(counts),'cases':cases,'guardrail':'QA001-100 development labels only. QA101-400 gold remains unopened. This diagnoses why benchmark-labeled defaults are not executable from released schema metadata.'}
-Path('researchbreakthrough/mab_inspection.json').write_text(json.dumps(result,indent=2,ensure_ascii=False));print('MEM2ACT_DEFAULT_GAP='+json.dumps(result,ensure_ascii=False))
+        total+=1; d=props.get(k) or {}; b=schema_candidates(d); ph=policy_candidates(k,d,required)
+        if any(norm(x)==norm(v) for x in b): base_hit+=1
+        elif any(norm(x)==norm(v) for x in ph): policy_added+=1
+        else:
+            by_type[str(d.get('type','unknown'))]+=1
+            still.append({'qa_id':q.get('qa_id'),'slot':k,'gold':v,'type':d.get('type'),'required':k in required,'description':str(d.get('description',''))[:220],'annotation_source':str(g.get('source_text',''))[:220]})
+result={'stage':'Mem2Act schema-policy default oracle on dev only','default_slots':total,'schema_only_covered':base_hit,'general_policy_additional':policy_added,'schema_plus_policy_covered':base_hit+policy_added,'schema_only_rate':base_hit/max(1,total),'schema_plus_policy_rate':(base_hit+policy_added)/max(1,total),'remaining_uncovered':len(still),'remaining_by_type':dict(by_type),'remaining_cases':still,'policy':'optional array -> []; optional string -> empty; boolean -> false; offset -> 0; page/pageIndex -> 1; explicit latest/start-at-zero index -> 0','guardrail':'QA001-100 development labels only. QA101-400 gold remains unopened. General policy contains no task-specific answer constants.'}
+Path('researchbreakthrough/mab_inspection.json').write_text(json.dumps(result,indent=2,ensure_ascii=False));print('MEM2ACT_POLICY_ORACLE='+json.dumps(result,ensure_ascii=False))
