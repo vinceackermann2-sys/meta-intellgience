@@ -1,10 +1,12 @@
-import json,re,string
-from collections import defaultdict,Counter
+import json,re,string,math
+from collections import defaultdict
 from pathlib import Path
 import numpy as np
 from datasets import load_dataset
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 
 OUT=Path('researchbreakthrough/full_banking77_result.json')
 PATTERNS=[
@@ -29,12 +31,26 @@ PATTERNS=[
 ('P35','head of state',re.compile(r'^The name of the current head of state in (.+?) is (.+?)\.$')),('P6','head of government',re.compile(r'^The name of the current head of (?:the )?(.+?) government is (.+?)\.$')),
 ('P286','coach',re.compile(r'^The coach of (.+?) is (.+?)\.$')),('P286','coach',re.compile(r'^The head coach of (.+?) is (.+?)\.$'))]
 OFFICE=re.compile(r'^The (.+?) is (.+?)\.$')
+RELNAME={r:n for r,n,_ in PATTERNS};RELNAME['P1308']='officeholder'
+# Fixed relation cues used before held-out question inspection; no 64K/262K answer or phrase-specific additions.
+CUES={
+'P19':['place of birth','birthplace','born'],'P20':['place of death','death','died','pass away'],'P413':['position played on team','position','speciality','specialty'],
+'P641':['sport'],'P30':['continent'],'P937':['work location','place of work','worked'],'P26':['spouse','partner','married'],
+'P27':['country of citizenship','citizenship','citizen','nationality'],'P175':['performer','performed'],'P108':['employer','employed'],
+'P112':['founder','founded','established'],'P170':['creator','created'],'P178':['developer','developed'],'P800':['notable work','famous for','known for'],
+'P1412':['spoken language','speak','communicate'],'P407':['language of work','written','wrote'],'P140':['religion','faith'],'P106':['occupation','field'],
+'P495':['country of origin','origin','hail','came from'],'P740':['place founded','founded','established'],'P40':['child'],'P36':['capital'],
+'P159':['headquarters location','headquarters'],'P50':['author'],'P69':['educational institution','university','school','educated','education'],
+'P1037':['director or manager','director','manager'],'P488':['chairperson'],'P169':['chief executive officer','ceo','chief executive'],
+'P449':['original broadcaster','broadcaster','aired'],'P176':['producer','manufacturer'],'P136':['music genre','genre','music'],
+'P37':['official language','officially spoken','official documents'],'P364':['original language'],'P35':['head of state','chief public representative'],
+'P6':['head of government'],'P286':['coach'],'P1308':['president','prime minister','governor','mayor','pope','officeholder']}
 
 def parse_fact(t):
     for rid,name,p in PATTERNS:
         m=p.match(t)
         if m:return m.group(1).strip(),rid,m.group(2).strip()
-    m=OFFICE.match(t); return (m.group(1).strip(),'P1308',m.group(2).strip()) if m else None
+    m=OFFICE.match(t);return (m.group(1).strip(),'P1308',m.group(2).strip()) if m else None
 
 def norm(s):
     s=str(s).lower();s=''.join(c for c in s if c not in string.punctuation);s=re.sub(r'\b(a|an|the)\b',' ',s);return ' '.join(s.split())
@@ -54,8 +70,7 @@ def compile_row(row,K=2):
         nf+=1;ser=int(m.group(1));s,r,o=z;reg[(s,r)][o]=max(ser,reg[(s,r)].get(o,-1))
     adj=defaultdict(list)
     for (s,r),vals in reg.items():
-        vs=sorted(((ser,o) for o,ser in vals.items()),reverse=True)[:K]
-        for rank,(ser,o) in enumerate(vs):adj[s].append((r,o,ser,rank))
+        for rank,(ser,o) in enumerate(sorted(((ser,o) for o,ser in vals.items()),reverse=True)[:K]):adj[s].append((r,o,ser,rank))
     for s,es in list(adj.items()):
         for r,o,ser,rank in list(es):
             if r=='P26':adj[o].append((r,s,ser,rank))
@@ -65,11 +80,6 @@ def anchor(q,adj):
     qf=q.casefold();c=[e for e in adj if e.casefold() in qf]
     if c:return max(c,key=len)
     nq=norm(q);c=[e for e in adj if norm(e) and norm(e) in nq];return max(c,key=len) if c else None
-
-def template(q,st):
-    x=q.casefold()
-    if st:x=re.sub(re.escape(st.casefold()),'<ent>',x)
-    return re.sub(r'\s+',' ',x).strip()
 
 def paths(st,adj,maxh=4,cap=50000):
     if not st:return []
@@ -83,131 +93,183 @@ def paths(st,adj,maxh=4,cap=50000):
     return out
 
 def seq(p):return tuple(e[1] for e in p)
-def ranks(p):return tuple(e[4] for e in p)
 
-def build(row):
-    adj,nf,nreg,nedge=compile_row(row,2);E=[]
-    for q,a in zip(row['questions'],row['answers']):
-        st=anchor(q,adj);ps=paths(st,adj);gp=[p for p in ps if exact(p[-1][2],a)]
-        gp.sort(key=lambda p:(len(p),sum(ranks(p)),max(e[3] for e in p)-min(e[3] for e in p)))
-        E.append({'q':q,'a':a,'st':st,'tpl':template(q,st),'paths':ps,'gold':gp,'nf':nf})
-    return {'facts':nf,'registers':nreg,'edges':nedge,'examples':E}
+def qmask(q,st):
+    x=q.casefold()
+    if st:x=re.sub(re.escape(st.casefold()),'<entity>',x)
+    return re.sub(r'\s+',' ',x).strip()
 
-def train_program(dev):
-    tr=[]
-    for e in dev:
-        if e['gold']:tr.append((e['tpl'],'|'.join(seq(e['gold'][0]))))
-    vec=TfidfVectorizer(analyzer='char_wb',ngram_range=(3,6),sublinear_tf=True)
-    X=vec.fit_transform([x[0] for x in tr]);return tr,vec,X
+def canonical_nested(s):
+    x='<entity>'
+    for r in s:x=f'the {RELNAME.get(r,r)} of {x}'
+    return 'what is '+x+'?'
+def canonical_steps(s):return 'starting from the entity, follow these relations in order: '+', then '.join(RELNAME.get(r,r) for r in s)+'.'
 
-def programs(tpl,tr,vec,X,k=30):
-    sim=cosine_similarity(vec.transform([tpl]),X).ravel();idx=np.argsort(-sim)[:min(k,len(sim))];vote=defaultdict(float)
-    for j,i in enumerate(idx):vote[tr[i][1]]+=(max(0,float(sim[i]))**3)+1e-8/(j+1)
-    return [tuple(z.split('|')) for z,_ in sorted(vote.items(),key=lambda kv:kv[1],reverse=True)[:5]],float(sim[idx[0]]) if len(idx) else 0.0
+def alias_hits(q,r):
+    q=q.casefold();hits=[]
+    for a in CUES.get(r,[RELNAME.get(r,r)]):
+        start=0
+        while True:
+            i=q.find(a,start)
+            if i<0:break
+            hits.append((i,len(a.split()),len(a)));start=i+1
+    return hits
 
-def choose(ps,policy,nf):
+def lexical_features(q,s):
+    # Text usually states the outer/answer relation before nested inner relations, so execution order is approximately reverse textual cue order.
+    pos=[];covered=0;strength=0.0
+    for r in s:
+        hs=alias_hits(q,r)
+        if hs:
+            covered+=1;best=max(hs,key=lambda z:(z[1],z[2]));pos.append(best[0]);strength+=min(1.0,best[1]/3.0)
+        else:pos.append(None)
+    known=[(i,p) for i,p in enumerate(pos) if p is not None]
+    inv_score=0.5
+    if len(known)>=2:
+        good=tot=0
+        for a in range(len(known)):
+            for b in range(a+1,len(known)):
+                # relation a executes before b; we expect its cue later in text than b's cue.
+                tot+=1;good+=int(known[a][1]>=known[b][1])
+        inv_score=good/max(1,tot)
+    # Last relation is the requested answer operator; reward its cue near question edges.
+    last_hits=alias_hits(q,s[-1]);edge=0.0
+    if last_hits:
+        L=max(1,len(q));edge=max(max(1-h[0]/L,h[0]/L) for h in last_hits)
+    return covered/len(s),strength/len(s),inv_score,edge
+
+def target_zones(q):
+    toks=re.findall(r"[\w'-]+",q.casefold())
+    head=' '.join(toks[:14]);tail=' '.join(toks[-14:])
+    return head,tail
+
+def type_map(adj):
+    typ=defaultdict(lambda:defaultdict(float))
+    roles={
+      'P19':('person','location'),'P20':('person','location'),'P413':('person','position'),'P641':('entity','sport'),'P30':('country','continent'),
+      'P937':('person','location'),'P26':('person','person'),'P27':('person','country'),'P175':('work','person'),'P108':('person','organization'),
+      'P112':('entity','person'),'P170':('work','person'),'P178':('product','organization'),'P800':('person','work'),'P1412':('person','language'),
+      'P407':('work','language'),'P140':('person','religion'),'P106':('person','occupation'),'P495':('entity','country'),'P740':('organization','location'),
+      'P40':('person','person'),'P36':('country','location'),'P159':('organization','location'),'P50':('work','person'),'P69':('person','organization'),
+      'P1037':('entity','person'),'P488':('organization','person'),'P169':('organization','person'),'P449':('work','organization'),'P176':('product','organization'),
+      'P136':('entity','genre'),'P37':('country','language'),'P364':('work','language'),'P35':('country','person'),'P6':('country','person'),
+      'P286':('entity','person'),'P1308':('office','person')}
+    for s,es in adj.items():
+        for r,o,ser,rank in es:
+            a,b=roles.get(r,('entity','entity'));typ[s][a]+=1;typ[o][b]+=1
+    return typ,roles
+
+def coherence_for_path(p,typ,roles):
+    vals=[]
+    for s,r,o,ser,rank in p:
+        a,b=roles.get(r,('entity','entity'))
+        os=sum(typ[o].values())+1e-6;ss=sum(typ[s].values())+1e-6
+        vals.append(0.5*(typ[o].get(b,0)/os)+0.5*(typ[s].get(a,0)/ss))
+    return float(np.mean(vals)) if vals else 0.0
+
+def choose_path(ps,typ,roles,coh_weight=0.0):
     if not ps:return None
-    def serials(p):return [e[3] for e in p]
-    def current(p):return sum(e[4] for e in p)
-    if policy=='all_current':
-        return min(ps,key=lambda p:(current(p),max(serials(p))-min(serials(p))))
-    if policy=='first_current_minspan':
-        z=[p for p in ps if p[0][4]==0] or ps
-        return min(z,key=lambda p:(max(serials(p))-min(serials(p)),current(p)))
-    if policy=='first_current_shadow_rest':
-        z=[p for p in ps if p[0][4]==0] or ps
-        return min(z,key=lambda p:(-sum(e[4] for e in p[1:]),max(serials(p))-min(serials(p))))
-    if policy=='snapshot_first':
-        z=[p for p in ps if p[0][4]==0] or ps
-        def key(p):
-            s0=p[0][3];down=serials(p)[1:]
-            viol=sum(s>s0 for s in down)
-            age=sum((s0-s) for s in down if s<=s0)
-            future=sum((s-s0) for s in down if s>s0)
-            return (viol,future,age,current(p))
-        return min(z,key=key)
-    if policy=='snapshot_monotone':
-        z=[p for p in ps if p[0][4]==0] or ps
-        def key(p):
-            ss=serials(p);inc=sum(max(0,ss[i]-ss[i-1]) for i in range(1,len(ss)));gap=sum(abs(ss[i]-ss[i-1]) for i in range(1,len(ss)))
-            return (inc,gap,current(p))
-        return min(z,key=key)
-    if policy=='min_span':
-        return min(ps,key=lambda p:(max(serials(p))-min(serials(p)),current(p)))
-    raise ValueError(policy)
+    def score(p):
+        shadow=sum(e[4] for e in p);span=(max(e[3] for e in p)-min(e[3] for e in p)) if len(p)>1 else 0
+        coh=coherence_for_path(p,typ,roles)
+        return -shadow-0.00001*span+coh_weight*coh
+    return max(ps,key=score)
 
-POLICIES=['all_current','first_current_minspan','first_current_shadow_rest','snapshot_first','snapshot_monotone','min_span']
+def build(row,model):
+    adj,nf,nreg,nedge=compile_row(row,2);typ,roles=type_map(adj);E=[]
+    rel_ids=list(RELNAME);rel_text=[RELNAME[r]+'. '+', '.join(CUES.get(r,[])) for r in rel_ids]
+    rel_emb=model.encode(rel_text,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)
+    for q,a in zip(row['questions'],row['answers']):
+        st=anchor(q,adj);ps=paths(st,adj);by=defaultdict(list)
+        for p in ps:by[seq(p)].append(p)
+        programs=list(by);qm=qmask(q,st);head,tail=target_zones(qm)
+        texts=[]
+        for s in programs:texts.extend([canonical_nested(s),canonical_steps(s)])
+        pe=model.encode(texts,batch_size=128,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32) if texts else np.zeros((0,384),dtype=np.float32)
+        qe=model.encode([qm,head,tail],normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)
+        feats=[]
+        for j,s in enumerate(programs):
+            cov,strength,order,edge=lexical_features(qm,s)
+            nested=float(pe[2*j]@qe[0]);steps=float(pe[2*j+1]@qe[0])
+            li=rel_ids.index(s[-1]);target_sem=max(float(rel_emb[li]@qe[1]),float(rel_emb[li]@qe[2]))
+            # relation-set semantic coverage: each relation gets best of whole/head/tail similarity.
+            rsem=float(np.mean([max(float(rel_emb[rel_ids.index(r)]@qe[k]) for k in range(3)) for r in s]))
+            cur=max((coherence_for_path(p,typ,roles) for p in by[s]),default=0.0)
+            feats.append([nested,steps,cov,strength,order,edge,target_sem,rsem,len(s),cur])
+        gp={seq(p) for p in ps if exact(p[-1][2],a)}
+        E.append({'q':q,'a':a,'st':st,'programs':programs,'paths_by':by,'features':feats,'gold_programs':gp,'nf':nf,'typ':typ,'roles':roles})
+    return {'facts':nf,'registers':nreg,'stored_edges':nedge,'examples':E}
 
-def version_score(dev,policy,length=None,program=None):
-    ok=n=0
+def prefilter(e,n=12):
+    if not e['programs']:return []
+    # Fixed semantic proposal score; the previous experiment showed broad semantic prefilters can retain the gold program.
+    vals=[]
+    for i,f in enumerate(e['features']):
+        nested,steps,cov,strength,order,edge,target_sem,rsem,L,cur=f
+        v=0.55*nested+0.2*steps+0.12*cov+0.06*order+0.05*target_sem+0.02*rsem-0.012*(L-1)
+        vals.append((v,i))
+    return [i for _,i in sorted(vals,reverse=True)[:n]]
+
+def train_ranker(dev):
+    X=[];y=[]
     for e in dev:
-        if not e['gold']:continue
-        gs={seq(p) for p in e['gold']}
-        if length is not None and len(next(iter(gs)))!=length:continue
-        if program is not None and program not in gs:continue
-        # Gold-program diagnostic: policy only chooses versions, not relation syntax.
-        hit=0
-        for g in gs:
-            p=choose([x for x in e['paths'] if seq(x)==g],policy,e['nf'])
-            if p is not None and exact(p[-1][2],e['a']):hit=1;break
-        ok+=hit;n+=1
-    return ok/max(1,n),n
+        idx=prefilter(e,20)
+        for i in idx:
+            X.append(e['features'][i]);y.append(int(e['programs'][i] in e['gold_programs']))
+    clf=make_pipeline(StandardScaler(),LogisticRegression(C=0.3,class_weight='balanced',max_iter=3000,random_state=7))
+    clf.fit(np.asarray(X),np.asarray(y));return clf
 
-def select_policies(dev):
-    global_best=max(POLICIES,key=lambda p:version_score(dev,p)[0])
-    bylen={}
-    for L in [1,2,3,4]:
-        scores=[(version_score(dev,p,length=L)[0],p,version_score(dev,p,length=L)[1]) for p in POLICIES]
-        bylen[L]=max(scores)[1]
-    counts=Counter(seq(e['gold'][0]) for e in dev if e['gold'])
-    byprog={}
-    for g,c in counts.items():
-        if c>=4:byprog[g]=max(POLICIES,key=lambda p:version_score(dev,p,program=g)[0])
-    return global_best,bylen,byprog,{p:version_score(dev,p)[0] for p in POLICIES}
+def tune_coherence(dev):
+    best=(0,None)
+    for w in [0,0.25,0.5,1,2,4]:
+        ok=n=0
+        for e in dev:
+            for g in e['gold_programs']:
+                p=choose_path(e['paths_by'].get(g,[]),e['typ'],e['roles'],w);n+=1
+                if p is not None and exact(p[-1][2],e['a']):ok+=1
+                break
+        a=ok/max(1,n)
+        if a>best[0]:best=(a,w)
+    return best
 
-def evaluate(D,tr,vec,X,global_policy,bylen,byprog):
-    out={};n=len(D['examples'])
-    for mode in ['global','by_length','by_program']:
-        ok=proghit=voracle=pathoracle=0;sims=[]
-        for e in D['examples']:
-            gs={seq(p) for p in e['gold']};pathoracle+=int(bool(e['gold']))
-            pg,s=programs(e['tpl'],tr,vec,X);sims.append(s);proghit+=int(any(x in gs for x in pg))
-            pred=None
-            for g in pg:
-                ps=[p for p in e['paths'] if seq(p)==g]
-                if not ps:continue
-                pol=global_policy
-                if mode in ('by_length','by_program'):pol=bylen.get(len(g),global_policy)
-                if mode=='by_program':pol=byprog.get(g,pol)
-                pred=choose(ps,pol,e['nf']);
-                if pred is not None:break
-            ok+=int(pred is not None and exact(pred[-1][2],e['a']))
-            # Version-only diagnostic with gold program; policy selection remains dev-only.
-            vh=0
-            for g in gs:
-                pol=global_policy
-                if mode in ('by_length','by_program'):pol=bylen.get(len(g),global_policy)
-                if mode=='by_program':pol=byprog.get(g,pol)
-                p=choose([x for x in e['paths'] if seq(x)==g],pol,e['nf'])
-                if p is not None and exact(p[-1][2],e['a']):vh=1;break
-            voracle+=vh
-        out[mode]={'accuracy':ok/max(1,n),'program_top5_recall':proghit/max(1,n),'version_accuracy_given_gold_program':voracle/max(1,n),'K2_path_oracle':pathoracle/max(1,n),'mean_template_similarity':float(np.mean(sims))}
-    return out
+def evaluate(D,clf,coh_w):
+    ok=0;top1prog=0;top5prog=0;pref_oracle=0;path_oracle=0;version=0;n=0
+    for e in D['examples']:
+        n+=1;path_oracle+=int(bool(e['gold_programs']))
+        idx=prefilter(e,12);pref_oracle+=int(any(e['programs'][i] in e['gold_programs'] for i in idx))
+        if not idx:continue
+        probs=clf.predict_proba(np.asarray([e['features'][i] for i in idx]))[:,1]
+        ranked=[idx[j] for j in np.argsort(-probs)]
+        top1prog+=int(e['programs'][ranked[0]] in e['gold_programs']);top5prog+=int(any(e['programs'][i] in e['gold_programs'] for i in ranked[:5]))
+        pred=None
+        for i in ranked:
+            pred=choose_path(e['paths_by'][e['programs'][i]],e['typ'],e['roles'],coh_w)
+            if pred is not None:break
+        ok+=int(pred is not None and exact(pred[-1][2],e['a']))
+        vh=0
+        for g in e['gold_programs']:
+            p=choose_path(e['paths_by'].get(g,[]),e['typ'],e['roles'],coh_w)
+            if p is not None and exact(p[-1][2],e['a']):vh=1;break
+        version+=vh
+    return {'accuracy':ok/max(1,n),'program_top1_accuracy':top1prog/max(1,n),'program_top5_recall':top5prog/max(1,n),
+            'semantic_prefilter_gold_recall':pref_oracle/max(1,n),'K2_path_oracle':path_oracle/max(1,n),'version_accuracy_given_gold_program':version/max(1,n)}
 
 def main():
     ds=load_dataset('ai-hyz/MemoryAgentBench',split='Conflict_Resolution',revision='main')
     srcs=['factconsolidation_mh_6k','factconsolidation_mh_32k','factconsolidation_mh_64k','factconsolidation_mh_262k']
     rows={(r.get('metadata') or {}).get('source'):r for r in ds if (r.get('metadata') or {}).get('source') in srcs}
-    D={s:build(rows[s]) for s in srcs}
-    held={norm(e['q']) for s in srcs[2:] for e in D[s]['examples']}
-    dev=[e for s in srcs[:2] for e in D[s]['examples'] if norm(e['q']) not in held]
-    overlap=sum(norm(e['q']) in held for s in srcs[:2] for e in D[s]['examples'])
-    tr,vec,X=train_program(dev);gb,bl,bp,devpol=select_policies(dev)
-    res={s:evaluate(D[s],tr,vec,X,gb,bl,bp) for s in srcs}
-    out={'stage':'transaction-snapshot K2 compiler','hypothesis':'first-hop edit defines a transaction snapshot; downstream facts should be resolved as-of that serial instead of by global latest-write',
-         'training_protocol':'ordered relation programs and policy choice use 6K+32K only; exact held-out question overlaps removed; 64K+262K answers only score frozen selectors',
-         'dev_examples':len(dev),'exact_overlap_removed':overlap,'global_policy':gb,'policy_by_length':{str(k):v for k,v in bl.items()},'program_specific_policy_count':len(bp),'dev_version_policy_accuracy':devpol,
-         'policies':POLICIES,'results':res,'state':{s:{'facts':D[s]['facts'],'registers':D[s]['registers'],'stored_edges':D[s]['edges']} for s in srcs},
-         'guardrail':'K2 path oracle and gold-program version diagnostic are evaluation-only; no held-out labels are used in compiler or policy fitting.'}
-    OUT.write_text(json.dumps(out,indent=2,ensure_ascii=False));print('SNAPSHOT_COMPILER_K2='+json.dumps(out,ensure_ascii=False))
+    model=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu')
+    D={s:build(rows[s],model) for s in srcs}
+    held_exact={norm(e['q']) for s in srcs[2:] for e in D[s]['examples']}
+    dev=[e for s in srcs[:2] for e in D[s]['examples'] if norm(e['q']) not in held_exact]
+    overlap=sum(norm(e['q']) in held_exact for s in srcs[:2] for e in D[s]['examples'])
+    clf=train_ranker(dev);dev_version,coh_w=tune_coherence(dev)
+    results={s:evaluate(D[s],clf,coh_w) for s in srcs}
+    out={'stage':'compositional semantic program discriminator + typed K2 execution',
+         'protocol':'ranker and coherence weight fitted on 6K+32K only; exact held-out overlaps removed. Relation labels/cues were fixed before held-out question inspection. 262K questions have since been inspected without answers, so 262K is exploratory evidence rather than a pristine blind claim.',
+         'dev_examples':len(dev),'overlap_removed':overlap,'coherence_weight':coh_w,'dev_gold_program_version_accuracy':dev_version,
+         'program_features':['nested_semantic','step_semantic','lexical_relation_coverage','lexical_strength','reverse_nesting_order','answer_relation_edge_position','answer_relation_semantics','relation_set_semantics','program_length','graph_type_coherence'],
+         'results':results,'state':{s:{'facts':D[s]['facts'],'registers':D[s]['registers'],'stored_edges':D[s]['stored_edges']} for s in srcs},
+         'guardrail':'gold answers are used only to fit 6K/32K program discriminator and to evaluate diagnostics; 64K/262K answers are not used during fitting.'}
+    OUT.write_text(json.dumps(out,indent=2,ensure_ascii=False));print('COMPOSITIONAL_PROGRAM_K2='+json.dumps(out,ensure_ascii=False))
 if __name__=='__main__':main()
