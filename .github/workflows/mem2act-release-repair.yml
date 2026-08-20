@@ -1,0 +1,22 @@
+name: mem2act-release-repair
+on:
+  pull_request:
+    paths:
+      - 'researchstrong/mem2act_repaired_sessions.py'
+      - '.github/workflows/mem2act-release-repair.yml'
+  workflow_dispatch:
+jobs:
+  verify-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify repaired session loader
+        run: python researchstrong/mem2act_repaired_sessions.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mem2act-release-repair-report
+          path: researchstrong/mem2act_repaired_sessions_report.json
