@@ -1,0 +1,66 @@
+{
+  "status": "partial_fail",
+  "date": "2026-08-20",
+  "config": {
+    "active_initial_per_tenant": 10000,
+    "hidden_v1": 768,
+    "hidden_v2": 800,
+    "vocab": 260,
+    "banks": 32,
+    "rank": 64,
+    "fast_params_per_tenant": 532480,
+    "fp16_fast_state_mb": 1.06496,
+    "lr": 0.7
+  },
+  "growth_recall": {
+    "100": 1.0,
+    "500": 0.996,
+    "1000": 0.97,
+    "2500": 0.9356,
+    "5000_sample2500": 0.8924,
+    "10000_sample2500": 0.8036,
+    "10000_full": 0.8009
+  },
+  "updates": {
+    "count": 1000,
+    "updated_key_recall": 0.995,
+    "unaffected_sample_recall": 0.7892156862745098,
+    "history_entries_created": 1000
+  },
+  "deletions": {
+    "requested": 1000,
+    "successful": 1000,
+    "remaining_active": 9000,
+    "remaining_sample_recall": 0.82
+  },
+  "reversibility_numeric": {
+    "writes_then_deletes": 1000,
+    "max_abs_residual": 4.2127774690925435e-7,
+    "l2_residual": 7.0137111833901145e-6
+  },
+  "tenant_isolation": {
+    "tenant_b_writes": 10000,
+    "tenant_b_full_recall": 0.7961,
+    "tenant_a_probe_predictions_unchanged_fraction": 1.0
+  },
+  "migration": {
+    "active_records_recompiled": 9000,
+    "old_model_remaining_recall": 0.8298888888888889,
+    "new_model_recompiled_recall": 0.8175555555555556,
+    "absolute_recall_delta": -0.012333333333333307,
+    "method": "canonical records replayed into fresh hidden-size-800 / new-projection memory; no fast tensor copying"
+  },
+  "equal_parameter_routing_control": [
+    {"banks":32,"rank":64,"fp16_mb":1.06496,"recall_10k":0.8009},
+    {"banks":64,"rank":32,"fp16_mb":1.06496,"recall_10k":0.7561},
+    {"banks":128,"rank":16,"fp16_mb":1.06496,"recall_10k":0.7528},
+    {"banks":256,"rank":8,"fp16_mb":1.06496,"recall_10k":0.6855}
+  ],
+  "capacity_curve": [
+    {"banks":32,"rank":64,"fp16_mb":1.06496,"recall_10k":0.8009},
+    {"banks":64,"rank":64,"fp16_mb":2.12992,"recall_10k":0.8924},
+    {"banks":128,"rank":64,"fp16_mb":4.25984,"recall_10k":0.9379},
+    {"banks":256,"rank":64,"fp16_mb":8.51968,"recall_10k":0.9646}
+  ],
+  "interpretation": "The reversible update mechanism and tenant boundary survive 10k-scale stress, but the fixed 32x64 neural fast state saturates and fails the high-fidelity retention gate. More banks at equal total parameters do not fix the problem; extra representational capacity does. The canonical ledger therefore remains mandatory, and exact keyed state should not be forced into this lossy neural cache."
+}
