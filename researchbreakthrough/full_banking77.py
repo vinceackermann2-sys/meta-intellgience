@@ -1,13 +1,14 @@
-import json,re,string,itertools,math
-from collections import defaultdict
+import json,re,string,math
+from collections import defaultdict,Counter
 from pathlib import Path
 import numpy as np
 from datasets import load_dataset
-from sentence_transformers import SentenceTransformer, CrossEncoder
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 
 OUT=Path('researchbreakthrough/full_banking77_result.json')
 
-# Published MQuAKE relation inventory + the surface forms used by MemoryAgentBench.
 PATTERNS=[
 ('P19','place of birth',re.compile(r'^(.+?) was born in the city of (.+?)\.$')),
 ('P20','place of death',re.compile(r'^(.+?) died in the city of (.+?)\.$')),
@@ -51,20 +52,7 @@ PATTERNS=[
 ('P286','coach',re.compile(r'^The head coach of (.+?) is (.+?)\.$')),
 ]
 OFFICE=re.compile(r'^The (.+?) is (.+?)\.$')
-RELNAME={rid:name for rid,name,_ in PATTERNS};RELNAME['P1308']='officeholder'
-CUES={
-'P19':['birth','born'],'P20':['death','died','pass away'],'P413':['position','speciality','specialty'],
-'P641':['sport'],'P30':['continent'],'P937':['worked','work location'],'P26':['spouse','partner','married'],
-'P27':['citizenship','citizen','nationality'],'P175':['performer','performed'],'P108':['employer','employed'],
-'P112':['founder','founded','established'],'P170':['creator','created'],'P178':['developer','developed'],
-'P800':['famous for','known for','notable work'],'P1412':['speak','communicate'],'P407':['written','wrote'],
-'P140':['religion','faith'],'P106':['occupation','field'],'P495':['country of origin','origin','hail','came from'],
-'P740':['founded','established'],'P40':['child'],'P36':['capital'],'P159':['headquarters'],
-'P50':['author'],'P69':['university','school','educated','education'],'P1037':['director','manager'],
-'P488':['chairperson'],'P169':['ceo','chief executive'],'P449':['broadcaster','aired'],'P176':['producer','manufacturer'],
-'P136':['genre','music'],'P37':['official language','officially spoken','official documents'],'P364':['original language'],
-'P35':['head of state','chief public representative'],'P6':['head of government'],'P286':['coach'],
-'P1308':['president','prime minister','governor','mayor','pope','officeholder']}
+RELNAME={rid:name for rid,name,_ in PATTERNS}; RELNAME['P1308']='officeholder'
 
 def parse_fact(t):
     for rid,name,p in PATTERNS:
@@ -74,157 +62,203 @@ def parse_fact(t):
     return (m.group(1).strip(),'P1308',m.group(2).strip()) if m else None
 
 def norm(s):
-    s=s.lower();s=''.join(c for c in s if c not in string.punctuation);s=re.sub(r'\b(a|an|the)\b',' ',s)
-    return ' '.join(s.split())
+    s=str(s).lower(); s=''.join(c for c in s if c not in string.punctuation)
+    s=re.sub(r'\b(a|an|the)\b',' ',s); return ' '.join(s.split())
 
 def golds(a):
-    if isinstance(a,str):return [a]
-    if isinstance(a,list) and a and isinstance(a[0],list):return [x for z in a for x in z]
+    if isinstance(a,str): return [a]
+    if isinstance(a,list) and a and isinstance(a[0],list): return [x for z in a for x in z]
     return list(a or [])
-def exact(x,a):return int(any(norm(x)==norm(g) for g in golds(a)))
+
+def exact(x,a): return any(norm(x)==norm(g) for g in golds(a))
 
 def compile_row(row,K=2):
-    reg=defaultdict(dict);nf=0
+    reg=defaultdict(dict); nf=0
     for line in row['context'].splitlines():
         m=re.match(r'^(\d+)\.\s+(.*\S)\s*$',line)
-        if not m:continue
+        if not m: continue
         z=parse_fact(m.group(2))
-        if not z:continue
-        nf+=1;ser=int(m.group(1));s,r,o=z;reg[(s,r)][o]=max(ser,reg[(s,r)].get(o,-1))
+        if not z: continue
+        nf+=1; ser=int(m.group(1)); s,r,o=z
+        reg[(s,r)][o]=max(ser,reg[(s,r)].get(o,-1))
     vers={k:sorted(((ser,o) for o,ser in v.items()),reverse=True) for k,v in reg.items()}
     adj=defaultdict(list)
     for (s,r),vs in vers.items():
-        for rank,(ser,o) in enumerate(vs[:K]):adj[s].append((r,o,ser,rank))
-    # P26 is symmetric; inverse is a derived index and costs no extra stored fact.
+        for rank,(ser,o) in enumerate(vs[:K]): adj[s].append((r,o,ser,rank))
     for s,es in list(adj.items()):
         for r,o,ser,rank in list(es):
-            if r=='P26':adj[o].append((r,s,ser,rank))
+            if r=='P26': adj[o].append((r,s,ser,rank))
     return adj,nf,len(reg),sum(min(K,len(v)) for v in vers.values())
 
 def anchor(q,adj):
-    qf=q.casefold();c=[e for e in adj if e.casefold() in qf]
+    qf=q.casefold(); c=[e for e in adj if e.casefold() in qf]
     if c:return max(c,key=len)
-    nq=norm(q);c=[e for e in adj if norm(e) and norm(e) in nq]
+    nq=norm(q); c=[e for e in adj if norm(e) and norm(e) in nq]
     return max(c,key=len) if c else None
 
-def paths(st,adj,maxh=4,cap=12000):
+def template(q,st):
+    s=q.casefold()
+    if st: s=re.sub(re.escape(st.casefold()),'<ent>',s)
+    s=re.sub(r'\s+',' ',s).strip()
+    return s
+
+def paths(st,adj,maxh=4,cap=50000):
     if not st:return []
-    out=[];stack=[(st,[],{st})]
+    out=[]; stack=[(st,[],{st})]
     while stack and len(out)<cap:
         node,es,seen=stack.pop()
-        if es:out.append(es)
-        if len(es)>=maxh:continue
+        if es: out.append(es)
+        if len(es)>=maxh: continue
         for r,o,ser,rank in adj.get(node,[]):
-            if o not in seen:stack.append((o,es+[(node,r,o,ser,rank)],seen|{o}))
+            if o not in seen: stack.append((o,es+[(node,r,o,ser,rank)],seen|{o}))
     return out
 
-def relation_text(st,p):
-    x=st
-    for _s,r,_o,_ser,_rank in p:x=f'the {RELNAME.get(r,r)} of {x}'
-    return x
+def seq(p): return tuple(e[1] for e in p)
+def ranks(p): return tuple(e[4] for e in p)
 
-def chain_text(st,p):
-    return '; '.join([f'start entity: {st}']+[f'{s} -- {RELNAME.get(r,r)} --> {o}' for s,r,o,ser,rank in p])
+def path_features(p,nf):
+    ss=np.array([e[3] for e in p],dtype=float); rr=np.array([e[4] for e in p],dtype=float)
+    gaps=np.abs(np.diff(ss)) if len(ss)>1 else np.array([0.0])
+    return [
+        len(p), rr.sum(), rr.mean(), 1.0-rr.mean(), rr[0], rr[-1],
+        ss.min()/max(1,nf), ss.max()/max(1,nf), ss.mean()/max(1,nf), ss.std()/max(1,nf),
+        (ss.max()-ss.min())/max(1,nf), gaps.mean()/max(1,nf), gaps.max()/max(1,nf),
+        float(np.all(np.diff(ss)>=0)) if len(ss)>1 else 1.0,
+        float(np.all(np.diff(ss)<=0)) if len(ss)>1 else 1.0,
+    ]
 
-def cue_score(q,p):
-    q=q.casefold();rels=[e[1] for e in p]
-    return sum(any(t in q for t in CUES.get(r,[RELNAME.get(r,r)])) for r in rels)/max(1,len(rels))
+def build_examples(row):
+    adj,nf,nreg,nedge=compile_row(row,2); ex=[]
+    for q,a in zip(row['questions'],row['answers']):
+        st=anchor(q,adj); ps=paths(st,adj); gp=[p for p in ps if exact(p[-1][2],a)]
+        gp.sort(key=lambda p:(len(p),sum(e[4] for e in p),max(e[3] for e in p)-min(e[3] for e in p)))
+        ex.append({'q':q,'a':a,'st':st,'tpl':template(q,st),'paths':ps,'gold_paths':gp,'nf':nf})
+    return {'source':(row.get('metadata') or {}).get('source',''),'facts':nf,'registers':nreg,'stored_edges':nedge,'examples':ex}
 
-def zscore(x):
-    x=np.asarray(x,dtype=np.float32)
-    if len(x)<2:return np.zeros_like(x)
-    return (x-x.mean())/(x.std()+1e-6)
+def label_of(p): return '|'.join(seq(p))+'#'+''.join(map(str,ranks(p)))
+def seq_label(p): return '|'.join(seq(p))
 
-def generate(row,bi,cross,top_sequences=8):
-    adj,nf,nreg,nedge=compile_row(row,2);qs=list(row['questions']);ans=list(row['answers'])
-    qemb=bi.encode(qs,batch_size=64,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)
-    output=[];anchor_ok=[]
-    for qi,(q,a) in enumerate(zip(qs,ans)):
-        st=anchor(q,adj);anchor_ok.append(st is not None);ps=paths(st,adj)
-        if not ps:output.append({'q':q,'gold':a,'cands':[],'all_oracle':0,'prefilter_oracle':0});continue
-        # Rank UNIQUE relation programs first, then keep every K=2 version branch for the best programs.
-        byseq=defaultdict(list)
-        for p in ps:byseq[tuple(e[1] for e in p)].append(p)
-        seqs=list(byseq);seqtxt=[]
-        for seq in seqs:
-            x=st
-            for r in seq:x=f'the {RELNAME.get(r,r)} of {x}'
-            seqtxt.append(x)
-        S=bi.encode(seqtxt,batch_size=128,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)@qemb[qi]
-        scored=[]
-        for j,seq in enumerate(seqs):
-            p0=byseq[seq][0];cheap=float(S[j])+0.16*cue_score(q,p0)-0.004*(len(seq)-1)
-            scored.append((cheap,seq))
-        chosen=set(seq for _,seq in sorted(scored,reverse=True)[:top_sequences])
-        candpaths=[p for seq in chosen for p in byseq[seq]]
-        # Hard cap after preserving relation-program diversity.  Cheap per-path recency only breaks huge branch explosions.
-        if len(candpaths)>160:
-            candpaths=sorted(candpaths,key=lambda p:(cue_score(q,p)+0.03*(1-sum(e[4] for e in p)/len(p))),reverse=True)[:160]
-        pairtexts=[(q,chain_text(st,p)) for p in candpaths]
-        cs=np.asarray(cross.predict(pairtexts,batch_size=64,show_progress_bar=False),dtype=np.float32).reshape(-1)
-        cz=zscore(cs)
-        rt=[relation_text(st,p) for p in candpaths]
-        re=bi.encode(rt,batch_size=128,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)
-        sem=re@qemb[qi];sz=zscore(sem)
-        items=[]
-        for j,p in enumerate(candpaths):
-            ranks=[e[4] for e in p];serials=[e[3] for e in p]
-            items.append({'end':p[-1][2],'cross_z':float(cz[j]),'relation_z':float(sz[j]),'cue':cue_score(q,p),
-                          'newest_frac':1-sum(ranks)/len(ranks),'first_newest':1-ranks[0],'last_newest':1-ranks[-1],
-                          'shadow_count':sum(ranks),'len':len(p),'serial_span':(max(serials)-min(serials))/max(1,nf),
-                          'gold':exact(p[-1][2],a)})
-        output.append({'q':q,'gold':a,'cands':items,'all_oracle':int(any(exact(p[-1][2],a) for p in ps)),
-                       'prefilter_oracle':int(any(x['gold'] for x in items))})
-    return {'source':(row.get('metadata') or {}).get('source',''),'facts':nf,'registers':nreg,'stored_edges':nedge,
-            'anchor_coverage':sum(anchor_ok)/len(anchor_ok),'questions':output}
+def parse_label(z):
+    a,b=z.split('#'); return tuple(a.split('|')),tuple(int(x) for x in b)
 
-def score_item(p,w):
-    # cross, relation, cue, newest_frac, first_newest, last_newest, shadow_count, len_penalty, serial_span
-    return (w[0]*p['cross_z']+w[1]*p['relation_z']+w[2]*p['cue']+w[3]*p['newest_frac']+
-            w[4]*p['first_newest']+w[5]*p['last_newest']+w[6]*p['shadow_count']-
-            w[7]*(p['len']-1)+w[8]*p['serial_span'])
+def candidate_for_label(paths_,lab):
+    ss,rr=parse_label(lab)
+    exacts=[p for p in paths_ if seq(p)==ss and ranks(p)==rr]
+    if exacts:return exacts
+    # Preserve program if exact version pattern is absent; rank by Hamming distance to requested pattern.
+    same=[p for p in paths_ if seq(p)==ss]
+    if same:
+        return sorted(same,key=lambda p:(sum(abs(a-b) for a,b in zip(ranks(p),rr)),sum(ranks(p))))
+    return []
 
-def accuracy(rows,w):
-    ok=0;n=0
-    for z in rows:
-        n+=1
-        if not z['cands']:continue
-        p=max(z['cands'],key=lambda x:score_item(x,w));ok+=p['gold']
-    return ok/max(1,n)
+def relation_oracle(ex):
+    gs={seq(p) for p in ex['gold_paths']}
+    return gs
+
+def train_program_compiler(dev):
+    train=[]
+    for e in dev:
+        if not e['gold_paths']: continue
+        # Multiple gold paths are possible; shortest/newest representative is deterministic.
+        p=e['gold_paths'][0]
+        train.append((e['tpl'],seq_label(p),label_of(p)))
+    texts=[x[0] for x in train]
+    vec=TfidfVectorizer(analyzer='char_wb',ngram_range=(3,6),min_df=1,sublinear_tf=True)
+    X=vec.fit_transform(texts)
+    return train,vec,X
+
+def predict_labels(tpl,train,vec,X,k=25):
+    qv=vec.transform([tpl]); sims=cosine_similarity(qv,X).ravel(); idx=np.argsort(-sims)[:min(k,len(sims))]
+    # First vote relation program, then version pattern inside the winning programs.
+    prog=defaultdict(float); full=defaultdict(float)
+    for rank_i,i in enumerate(idx):
+        w=float(max(0,sims[i]))**3 + 1e-6/(rank_i+1)
+        prog[train[i][1]]+=w; full[train[i][2]]+=w
+    top_prog=[x for x,_ in sorted(prog.items(),key=lambda kv:kv[1],reverse=True)[:5]]
+    labs=[]
+    for z,_ in sorted(full.items(),key=lambda kv:kv[1],reverse=True):
+        if z.split('#')[0] in top_prog: labs.append(z)
+        if len(labs)>=12:break
+    return labs,top_prog,float(sims[idx[0]]) if len(idx) else 0.0
+
+def train_structural_ranker(dev):
+    X=[];y=[]
+    for e in dev:
+        if not e['paths'] or not e['gold_paths']: continue
+        goldset={(seq(p),ranks(p),p[-1][2]) for p in e['gold_paths']}
+        goldseq={seq(p) for p in e['gold_paths']}
+        # Train version chooser only on paths having a gold relation program.
+        for p in e['paths']:
+            if seq(p) not in goldseq: continue
+            X.append(path_features(p,e['nf']))
+            y.append(int((seq(p),ranks(p),p[-1][2]) in goldset))
+    if len(set(y))<2:return None
+    clf=RandomForestClassifier(n_estimators=400,max_depth=7,min_samples_leaf=2,class_weight='balanced_subsample',random_state=7,n_jobs=-1)
+    clf.fit(np.asarray(X),np.asarray(y))
+    return clf
+
+def choose_structural(paths_,program,nf,clf):
+    ps=[p for p in paths_ if seq(p)==program]
+    if not ps:return None
+    if clf is None:return min(ps,key=lambda p:(sum(ranks(p)),max(e[3] for e in p)-min(e[3] for e in p)))
+    pr=clf.predict_proba(np.asarray([path_features(p,nf) for p in ps]))[:,1]
+    return ps[int(np.argmax(pr))]
+
+def evaluate(data,train,vec,X,ranker):
+    ok=0; relation_ok=0; version_given_goldprog=0; compiler_prog_ok=0; n=0; details=[]
+    for e in data['examples']:
+        n+=1; goldseq=relation_oracle(e)
+        if goldseq: relation_ok+=1
+        labs,progs,sim=predict_labels(e['tpl'],train,vec,X)
+        pred_prog=[tuple(z.split('|')) for z in progs]
+        prog_hit=any(p in goldseq for p in pred_prog); compiler_prog_ok+=int(prog_hit)
+        # Main prediction: full template label vote; first executable label wins.
+        pred=None
+        for lab in labs:
+            ps=candidate_for_label(e['paths'],lab)
+            if ps:
+                # Among duplicates use structural selector for that program, but exact requested rank pattern gets priority.
+                ss,rr=parse_label(lab); exactps=[p for p in ps if ranks(p)==rr]
+                pred=exactps[0] if exactps else choose_structural(ps,ss,e['nf'],ranker)
+                if pred:break
+        # Fallback: top predicted program + structural version chooser.
+        if pred is None:
+            for pg in pred_prog:
+                pred=choose_structural(e['paths'],pg,e['nf'],ranker)
+                if pred:break
+        if pred is None and e['paths']:
+            pred=min(e['paths'],key=lambda p:(len(p),sum(ranks(p))))
+        hit=int(pred is not None and exact(pred[-1][2],e['a'])); ok+=hit
+        # Diagnostic ceiling: assume correct program known, ask structural ranker to choose version.
+        vh=0
+        for pg in goldseq:
+            p=choose_structural(e['paths'],pg,e['nf'],ranker)
+            if p is not None and exact(p[-1][2],e['a']): vh=1;break
+        version_given_goldprog+=vh
+        details.append({'hit':hit,'program_hit':int(prog_hit),'version_hit_given_gold_program':vh,'template_similarity':sim})
+    return {'accuracy':ok/max(1,n),'program_top5_recall':compiler_prog_ok/max(1,n),
+            'K2_path_oracle':relation_ok/max(1,n),'version_accuracy_given_gold_program':version_given_goldprog/max(1,n),
+            'mean_nearest_template_similarity':float(np.mean([d['template_similarity'] for d in details]))}
 
 def main():
     ds=load_dataset('ai-hyz/MemoryAgentBench',split='Conflict_Resolution',revision='main')
     srcs=['factconsolidation_mh_6k','factconsolidation_mh_32k','factconsolidation_mh_64k','factconsolidation_mh_262k']
     rows={(r.get('metadata') or {}).get('source'):r for r in ds if (r.get('metadata') or {}).get('source') in srcs}
-    bi=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu')
-    cross=CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2',device='cpu',max_length=256)
-    D={s:generate(rows[s],bi,cross,8) for s in srcs}
-    held=set(norm(z['q']) for s in srcs[2:] for z in D[s]['questions'])
-    dev=[z for s in srcs[:2] for z in D[s]['questions'] if norm(z['q']) not in held]
-    overlap=sum(norm(z['q']) in held for s in srcs[:2] for z in D[s]['questions'])
-
-    # Coarse search, then refine around the best answer-blind feature mixture. Held-out labels never enter selection.
-    best=(-1,None)
-    for w in itertools.product([.5,1,1.5],[0,.25,.5],[0,.1,.2],[-.1,0,.1,.2],[0,.05],[0,.05],[-.08,-.03,0],[0,.01],[0]):
-        a=accuracy(dev,w)
-        if a>best[0]:best=(a,w)
-    controls={
-      'cross_only':(1,0,0,0,0,0,0,0,0),
-      'cross_plus_relation':(1,.25,.1,0,0,0,0,.01,0),
-      'cross_prefer_current':(1,.25,.1,.15,.05,.05,0,.01,0),
-      'cross_allow_shadow':(1,.25,.1,.05,0,0,-.03,.01,0),
-    }
-    result={}
-    for s in srcs:
-        q=D[s]['questions'];result[s]={
-          'accuracy_selected':accuracy(q,best[1]),'all_K2_path_oracle':float(np.mean([z['all_oracle'] for z in q])),
-          'prefilter_path_oracle':float(np.mean([z['prefilter_oracle'] for z in q])),
-          'stored_edges':D[s]['stored_edges'],'history_facts':D[s]['facts'],'anchor_coverage':D[s]['anchor_coverage'],
-          'controls':{k:accuracy(q,w) for k,w in controls.items()}}
-    out={'stage':'held-out K2 cross-encoder version/path selector','selector':'ms-marco-MiniLM-L6-v2 over explicit typed path + MiniLM relation-program score + structural version features',
-         'training_protocol':'weights selected only on 6K+32K; exact-overlap questions with 64K/262K removed; 64K+262K answers never used for selection',
-         'question_overlap_removed_from_dev':overlap,'dev_questions':len(dev),'selected_dev_accuracy':best[0],
-         'selected_weights':list(best[1]),'top_relation_programs':8,'results':result,
-         'scientific_guardrail':'gold is used only after candidate generation for evaluation/oracle reporting; it is not used to select held-out paths or weights'}
-    OUT.write_text(json.dumps(out,indent=2,ensure_ascii=False));print('CROSS_ENCODER_K2='+json.dumps(out,ensure_ascii=False))
-if __name__=='__main__':main()
+    D={s:build_examples(rows[s]) for s in srcs}
+    held_exact={norm(e['q']) for s in srcs[2:] for e in D[s]['examples']}
+    dev=[e for s in srcs[:2] for e in D[s]['examples'] if norm(e['q']) not in held_exact]
+    overlap=sum(norm(e['q']) in held_exact for s in srcs[:2] for e in D[s]['examples'])
+    train,vec,X=train_program_compiler(dev); ranker=train_structural_ranker(dev)
+    results={s:evaluate(D[s],train,vec,X,ranker) for s in srcs}
+    # Template coverage diagnostics: no answers involved.
+    dev_tpl={e['tpl'] for e in dev}
+    tpl_cov={s:sum(e['tpl'] in dev_tpl for e in D[s]['examples'])/len(D[s]['examples']) for s in srcs}
+    out={'stage':'template-supervised ordered relation-program compiler + structural K2 version chooser',
+         'training_protocol':'program/version labels learned only from 6K+32K gold paths; exact held-out question overlaps removed; 64K+262K answers used only after predictions for evaluation',
+         'dev_examples':len(dev),'heldout_exact_overlap_removed':overlap,'training_labels':len(train),
+         'architecture':{'canonical_state':'K=2 current+shadow registers','query':'anchor -> normalized question grammar -> ordered relation program -> local version execution',
+                         'program_model':'character n-gram TF-IDF nearest-template voting','version_model':'random-forest structural chooser trained only within gold programs on dev'},
+         'template_exact_coverage':tpl_cov,'results':results,
+         'guardrail':'K2_path_oracle and version_accuracy_given_gold_program are diagnostics only; held-out gold never enters compiler or ranker fitting.'}
+    OUT.write_text(json.dumps(out,indent=2,ensure_ascii=False)); print('PROGRAM_COMPILER_K2='+json.dumps(out,ensure_ascii=False))
+if __name__=='__main__': main()
