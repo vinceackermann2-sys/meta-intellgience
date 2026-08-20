@@ -1,0 +1,27 @@
+name: mem2act-normalization-oracle
+on:
+  pull_request:
+    paths:
+      - 'researchstrong/normalization_operator_oracle.py'
+      - '.github/workflows/mem2act-normalization-oracle.yml'
+  workflow_dispatch:
+jobs:
+  normalization-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU research dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
+      - name: Run normalization operator oracle
+        working-directory: researchstrong
+        run: python normalization_operator_oracle.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mem2act-normalization-oracle-result
+          path: researchstrong/normalization_operator_oracle_result.json
