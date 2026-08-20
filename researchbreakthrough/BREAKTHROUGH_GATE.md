@@ -4,22 +4,26 @@ This file defines the pass/fail criteria *before* final benchmark results are ac
 
 ## Candidate contribution
 
-A model-independent canonical event ledger is compiled online into multiple operation-specific executable memory states rather than a single flat retrieval store:
+The broad ideas of hierarchical memory, executable memory, ledgers, operator-aware retrieval and online parametric adaptation are already represented in current work. Relevant prior art now includes MemOS, MemoryOS, EverMemOS, MemoTime, MemCog, StructMem, APEX-MEM, Hindsight, STITCH, User-as-Code, TARL, Text2Mem, AgeMem/VerMem, UniMem, CoMem and TMEM. Therefore **none of the following alone is a novelty claim**: hybrid memory, an append-only log, typed user state, a temporal graph, executable memory operations, episodic/semantic separation, or fast LoRA/parametric adaptation.
 
-1. typed action/slot state for exact tool parameters and reusable action state;
+The narrower candidate we will test is:
+
+> **Transactional, reversible, model-migratable parametric memory grounded in a canonical event ledger, combined with lossless operation-specific compiled state, that measurably improves real agent actions at substantially lower model/context cost.**
+
+Concretely, a model-independent canonical event ledger may compile online into:
+
+1. lossless typed action/slot registers for exact tool parameters and reusable action state;
 2. versioned temporal/current-state registers for changing facts;
 3. relation/program graphs for compositional queries;
 4. semantic state for stable abstractions;
 5. episodic residuals for evidence that cannot yet be safely compiled;
-6. optional model-specific fast/parametric caches that can be rebuilt from the canonical ledger after a model upgrade.
+6. model-specific fast/parametric caches whose individual contributions can be corrected/retracted and which can be rebuilt from the canonical ledger after a model upgrade.
 
-The query/task determines which memory substrates are read and composed. The canonical ledger remains the source of truth, so correction, deletion, provenance, tenant isolation, and model migration remain possible.
-
-This is not claimed to be novel merely because it is hierarchical or hybrid. MemOS, MemoryOS, EverMemOS, MemoTime, MemCog, UniMem, CoMem and related systems already cover important pieces of that design space. Any claim must be based on measured capability/efficiency that existing systems do not demonstrate.
+The query/task determines which substrates are read and composed. The canonical ledger remains the source of truth. Parametric memory is a learned behavioral/semantic cache, **not** the only durable copy of exact facts. Any eventual contribution must demonstrate a capability or efficiency frontier not already shown by the prior systems above.
 
 ## Gate A — real action grounding (flagship)
 
-Benchmark: official Mem2ActBench protocol, all released evaluation tasks accounted for. No silent dropping of unresolved sessions.
+Benchmark: official Mem2ActBench protocol, all 400 released evaluation tasks accounted for. No silent dropping of unresolved sessions.
 
 Required baselines using the same backbone and decoding budget:
 - no memory / current query + schema only;
@@ -71,6 +75,23 @@ The following are mandatory systems tests, not optional demos:
 5. Model-version migration rebuilds model-specific state from the canonical ledger, not by copying incompatible neural tensors.
 6. After migration to a materially different representation/model, retained-memory accuracy drops < 1 absolute point relative to the pre-migration system on the same canonical records, or the loss is explicitly explained by the new model's base capability.
 7. Writes arriving during migration are replayed from a sequence-numbered log and no acknowledged write is lost.
+8. Exact keyed state is evaluated through its lossless compiled register, while the neural/parametric cache is separately evaluated for learned generalization and behavioral transfer. A lossy neural cache is not allowed to masquerade as the durable source of truth.
+
+### Current Gate C stress result
+
+The existing fixed RSM fast state **does not pass** the high-fidelity capacity requirement:
+- 1.06496 MB fp16/user (32 banks x rank 64): 80.09% full recall at 10k random associations;
+- 2.12992 MB: 89.24%;
+- 4.25984 MB: 93.79%;
+- 8.51968 MB: 96.46%.
+
+Positive results at the same scale:
+- 1,000 updated keys: 99.5% recall on the newly updated targets;
+- 1,000 deletions: all 1,000 contributions removed; isolated write/delete reversal leaves only ~4.2e-7 max numerical residual;
+- 10,000 writes in another tenant changed 0/500 sampled predictions in tenant A;
+- migration by recompiling 9,000 active records into hidden-size 800 + a new projection retained 81.76% versus 82.99% before migration, a -1.23 point delta, narrowly missing the <1 point target.
+
+Equal-parameter routing controls show that simply increasing bank count while reducing rank is not the solution: at the same ~1.065 MB fast-state budget, 32x64 = 80.09%, 64x32 = 75.61%, 128x16 = 75.28%, and 256x8 = 68.55%. The bottleneck is representational capacity, not just hash-load imbalance.
 
 ## Gate D — causal ablation
 
@@ -81,6 +102,7 @@ Required ablations:
 - remove temporal/versioned registers;
 - remove relation/program graph;
 - remove episodic residual retrieval;
+- remove parametric/fast cache;
 - replace operator-conditioned routing with a single flat top-k retriever;
 - equalize total retrieved tokens;
 - equalize backbone, decoding parameters and available source information.
@@ -108,10 +130,12 @@ Before using the word breakthrough:
 ## Current status
 
 - Synthetic RSM continual-memory dynamics: promising internal evidence only.
-- Tenant isolation, reversible updates and model migration: demonstrated at small synthetic scale; Gate C not yet passed at 10k+ real memories.
+- Reversible updates and tenant isolation: strong mechanistic evidence at 10k scale.
+- Fixed-capacity neural RSM retention: **fails** the 10k high-fidelity gate and should be treated as a lossy cache, not durable memory.
+- Model migration: principle works by canonical replay, but the 10k-scale stress result currently misses the <1-point migration gate by ~0.23 point.
 - MQuAKE-Remastered 90.42% per-case structured-triple transfer: useful language/program-transfer result, **not** comparable to the true simultaneous multi-edit benchmark and not end-to-end because it consumes `new_triples_labeled`.
 - Banking77 compact-state work: partial rejection; compact cortex+exceptions did not beat full episodic k-NN.
 - Mem2Act offline location analysis: supports typed + semantic + schema hybrid memory; this is diagnostic, not benchmark performance.
-- Mem2Act 0.5B flat-retrieval and typed-compiler A/B runs: in progress at time this gate was written.
+- Mem2Act 0.5B flat-retrieval and typed-compiler A/B runs: in progress when this revision was written.
 
 Do not weaken these gates after seeing results. If a gate fails, change the architecture or narrow the claim.
