@@ -1,19 +1,19 @@
 import json
+from collections import Counter
 from pathlib import Path
 from datasets import load_dataset
 
-ds=load_dataset('ai-hyz/MemoryAgentBench',split='Conflict_Resolution',revision='main')
-srcs=['factconsolidation_mh_6k','factconsolidation_mh_32k','factconsolidation_mh_64k','factconsolidation_mh_262k']
-out={'stage':'question-grammar inspection only','guardrail':'answers intentionally omitted','rows':{}}
+ds=load_dataset('henryzhongsc/MQuAKE-Remastered',split='CF3k')
+rels=Counter();lengths=Counter();shapes=Counter()
 for row in ds:
-    src=(row.get('metadata') or {}).get('source')
-    if src not in srcs:continue
-    meta=row.get('metadata') or {}
-    out['rows'][src]={
-        'questions':list(row.get('questions') or []),
-        'question_types':list(meta.get('question_types') or []),
-        'keypoints':list(meta.get('keypoints') or []),
-        'metadata_keys':list(meta.keys())
-    }
+    ts=list(row.get('new_triples_labeled') or [])
+    lengths[len(ts)]+=1
+    for t in ts:
+        if isinstance(t,(list,tuple)) and len(t)>=3:
+            rels[str(t[1])]+=1
+            shapes[type(t).__name__]+=1
+out={'stage':'fresh validation schema audit','guardrail':'questions and answers intentionally not read or emitted',
+     'cases':len(ds),'unique_relation_labels':sorted(rels),'relation_counts':dict(rels),
+     'chain_length_histogram':dict(lengths),'triple_container_types':dict(shapes)}
 Path('researchbreakthrough/mab_inspection.json').write_text(json.dumps(out,indent=2,ensure_ascii=False))
-print('MAB_QUESTION_GRAMMAR='+json.dumps(out,ensure_ascii=False))
+print('REMASTERED_RELATION_SCHEMA='+json.dumps(out,ensure_ascii=False))
