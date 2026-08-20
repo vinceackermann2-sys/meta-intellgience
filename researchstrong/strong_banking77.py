@@ -33,14 +33,12 @@ def split_within_class(y,frac=.2):
 def class_centroids(X,y):return norm(np.stack([X[y==c].mean(0) for c in range(77)]).astype(np.float32))
 
 def select_hard(X,y,decision,budget_frac):
-    # Hardness is low true-class margin. Select class-balanced so rare/easy classes keep local exceptions too.
     order=[];per=max(1,int(math.ceil(len(X)*budget_frac/77)))
     for c in range(77):
         ids=np.where(y==c)[0]
         if not len(ids):continue
         true=decision[ids,c];tmp=decision[ids].copy();tmp[:,c]=-1e9;other=tmp.max(1);hard=other-true
         take=ids[np.argsort(-hard)[:min(per,len(ids))]];order.extend(map(int,take))
-    # Trim globally by actual hardness when balanced ceiling overshoots.
     target=max(77,int(round(len(X)*budget_frac)))
     if len(order)>target:
         ids=np.asarray(order);true=decision[ids,y[ids]];tmp=decision[ids].copy();tmp[np.arange(len(ids)),y[ids]]=-1e9;hard=tmp.max(1)-true
@@ -91,7 +89,6 @@ def farthest_first_class(X,y,k):
     return np.asarray(sel,dtype=int)
 
 def condensed_nn(X,y,max_pass=5):
-    # Classic condensed-nearest-neighbor style exact exemplar ledger.
     C=class_centroids(X,y);sel=[]
     for c in range(77):
         ids=np.where(y==c)[0];sel.append(int(ids[np.argmax(X[ids]@C[c])]))
@@ -113,7 +110,6 @@ def main():
     E=enc.encode(texts+questions,batch_size=128,show_progress_bar=True,normalize_embeddings=True,convert_to_numpy=True).astype(np.float32);X,Q=E[:len(texts)],E[len(texts):];d=X.shape[1]
     scores={};state={};detail={}
 
-    # Full episodic references.
     sims=Q@X.T
     for k in [1,3,5,7]:
         idx=np.argpartition(-sims,k-1,axis=1)[:,:k]
@@ -126,31 +122,25 @@ def main():
         scores[f'full_knn_K{k}']=acc(p,gold);state[f'full_knn_K{k}']={'vectors':len(X),'float_bytes':int(X.nbytes),'fraction':1.0}
 
     ti,vi=split_within_class(y);Xt,yt,Xv,yv=X[ti],y[ti],X[vi],y[vi]
-    # Compact linear semantic state.
     best=(-1,None)
     for C in [.05,.1,.2,.3,.5,1,2,3,5,10]:
         m=LogisticRegression(C=C,max_iter=2500,solver='lbfgs').fit(Xt,yt);a=acc(m.predict(Xv),yv)
         if a>best[0]:best=(a,C)
     base=LogisticRegression(C=best[1],max_iter=2500,solver='lbfgs').fit(X,y);scores['linear_semantic_state']=acc(base.predict(Q),gold);state['linear_semantic_state']={'vectors_equiv':77,'float_bytes':int(base.coef_.nbytes+base.intercept_.nbytes),'fraction_vs_full_vectors':77/len(X)};detail['linear_semantic_state']={'validation':best[0],'C':best[1]}
 
-    # Exact exemplar compression baselines.
     for k in [1,2,4,8,12,16,24]:
         ids=farthest_first_class(X,y,k);pred=y[ids[(Q@X[ids].T).argmax(1)]];name=f'farthest_exemplar_K{k}';scores[name]=acc(pred,gold);state[name]={'vectors':len(ids),'float_bytes':int(X[ids].nbytes),'fraction':len(ids)/len(X)}
     cnn=condensed_nn(X,y);scores['condensed_1nn']=acc(y[cnn[(Q@X[cnn].T).argmax(1)]],gold);state['condensed_1nn']={'vectors':len(cnn),'float_bytes':int(X[cnn].nbytes),'fraction':len(cnn)/len(X)}
 
-    # Cortex + hippocampal exceptions: linear state handles the common manifold; only hard local cases remain episodic.
     for budget in [.01,.02,.03,.05,.075,.10,.15,.20,.30]:
-        val,hyper=tune_hybrid(Xt,yt,Xv,yv,best[1],budget)
+        (val,hyper),_ = tune_hybrid(Xt,yt,Xv,yv,best[1],budget)
         dec=base.decision_function(X);ids=select_hard(X,y,dec,budget);ex=exception_class_sims(Q,X[ids],y[ids]);dq=base.decision_function(Q);mode,beta,tau,margin=hyper;pred=hybrid_predict(dq,ex,mode,beta,tau,margin)
         name=f'cortex_plus_exceptions_{int(budget*1000):03d}permille';scores[name]=acc(pred,gold)
         bytes_=base.coef_.nbytes+base.intercept_.nbytes+X[ids].nbytes
         state[name]={'exception_vectors':len(ids),'exception_fraction':len(ids)/len(X),'float_bytes':int(bytes_),'bytes_fraction_vs_full_embeddings':float(bytes_/X.nbytes)}
         detail[name]={'validation':val,'mode':mode,'beta':beta,'tau':tau,'base_margin_threshold':margin}
 
-    # Full embeddings quantized to int8: separates vector-count vs byte-compression effects.
-    scale=np.maximum(np.max(np.abs(X),axis=0),1e-6)/127.0;Xi=np.round(X/scale).clip(-127,127).astype(np.int8);Qi=(Q/scale).astype(np.float32)
-    # dot in reconstructed space, without materializing float X permanently.
-    qs=(Q*scale);qsim=qs@Xi.T.astype(np.float32);scores['full_1nn_int8_state']=acc(y[qsim.argmax(1)],gold);state['full_1nn_int8_state']={'vectors':len(X),'bytes':int(Xi.nbytes+scale.nbytes),'byte_fraction_vs_float_full':float((Xi.nbytes+scale.nbytes)/X.nbytes)}
+    scale=np.maximum(np.max(np.abs(X),axis=0),1e-6)/127.0;Xi=np.round(X/scale).clip(-127,127).astype(np.int8);qs=(Q*scale);qsim=qs@Xi.T.astype(np.float32);scores['full_1nn_int8_state']=acc(y[qsim.argmax(1)],gold);state['full_1nn_int8_state']={'vectors':len(X),'bytes':int(Xi.nbytes+scale.nbytes),'byte_fraction_vs_float_full':float((Xi.nbytes+scale.nbytes)/X.nbytes)}
 
     best_name=max(scores,key=scores.get)
     frontier=sorted([(v,state[k].get('exception_fraction',state[k].get('fraction',1.0)),k) for k,v in scores.items() if 'float_bytes' in state[k]],key=lambda z:(z[1],-z[0]))
