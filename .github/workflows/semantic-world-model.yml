@@ -1,16 +1,17 @@
-name: semantic-world-model-audit
+name: semantic-world-model-repaired-state
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchstrong/semantic_missing_inferred_audit.py'
+      - 'researchstrong/semantic_property_repaired_oracle.py'
+      - 'researchstrong/mem2act_repaired_sessions.py'
       - '.github/workflows/semantic-world-model.yml'
 permissions:
   contents: read
 jobs:
-  missing-inferred-audit:
+  repaired-property-state:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,14 +21,14 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
           python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
-      - name: Audit missing inferred properties
+      - name: Run repaired SWM-A property oracle
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_missing_inferred_audit.py
+        run: python semantic_property_repaired_oracle.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: semantic-missing-inferred-audit-result
-          path: researchstrong/semantic_missing_inferred_audit_result.json
+          name: semantic-property-repaired-result
+          path: researchstrong/semantic_property_repaired_oracle_result.json
           retention-days: 90
