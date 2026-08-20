@@ -1,89 +1,224 @@
-import json, urllib.request
-from collections import defaultdict, Counter
+import json, os, re, urllib.request, tempfile
 from pathlib import Path
+from collections import defaultdict
 import numpy as np
-from datasets import load_dataset
+import torch
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 OUT=Path('researchstrong/strong_banking77_result.json')
-# Immutable source: exact parser that produced the first-shot CF3k result.
-SOURCE_URL='https://raw.githubusercontent.com/vinceackermann2-sys/meta-intellgience/04bcc0ef1ecceee1e9dfce26427efad92b4ae070/researchbreakthrough/full_banking77.py'
+BASE='https://raw.githubusercontent.com/Cantaloupe-M/Mem2ActBench/main/Mem2ActBench/'
+MODEL='Qwen/Qwen2.5-0.5B-Instruct'; N_EVAL=int(os.environ.get('MEM2ACT_N','100'))
 
-def load_frozen_source():
-    src=urllib.request.urlopen(SOURCE_URL,timeout=30).read().decode('utf-8')
-    src=src.replace("if __name__=='__main__':main()",'')
-    ns={'__name__':'frozen_mab_parser'}
-    exec(compile(src,'frozen_full_banking77.py','exec'),ns)
-    return ns
+def fetch(url,path):
+    if not path.exists(): urllib.request.urlretrieve(url,path)
+def load_jsonl(path):
+    with open(path,encoding='utf-8') as f:
+        for line in f:
+            if line.strip(): yield json.loads(line)
+def norm(v):
+    if isinstance(v,bool): return str(v).lower()
+    if v is None:return 'null'
+    if isinstance(v,(dict,list)):return json.dumps(v,sort_keys=True,ensure_ascii=False).casefold()
+    return re.sub(r'\s+',' ',str(v).strip()).casefold()
+def parse_json_obj(text):
+    text=re.sub(r'^```(?:json)?\s*','',text.strip(),flags=re.I); text=re.sub(r'\s*```$','',text)
+    for m in re.finditer(r'\{',text):
+        s=m.start();depth=0
+        for i in range(s,len(text)):
+            if text[i]=='{':depth+=1
+            elif text[i]=='}':
+                depth-=1
+                if depth==0:
+                    try:
+                        z=json.loads(text[s:i+1]);return z if isinstance(z,dict) else {}
+                    except Exception:break
+    return {}
+def parse_args(tc):
+    if not isinstance(tc,dict):return {}
+    f=tc.get('function') or {}; a=f.get('arguments',{}) if isinstance(f,dict) else {}
+    if isinstance(a,dict):return a
+    if isinstance(a,str):
+        try:
+            z=json.loads(a);return z if isinstance(z,dict) else {}
+        except Exception:return {}
+    return {}
+def tool_name(tc):
+    f=(tc or {}).get('function') if isinstance(tc,dict) else {};return str((f or {}).get('name','')) if isinstance(f,dict) else ''
+def flat_turn(t):
+    c=t.get('content',''); c=json.dumps(c,ensure_ascii=False) if isinstance(c,(dict,list)) else str(c)
+    return f"{t.get('role','')}: {c}".strip()
+def flatten(d,prefix=''):
+    out=[]
+    if isinstance(d,dict):
+        for k,v in d.items():
+            kk=f'{prefix}.{k}' if prefix else str(k)
+            if isinstance(v,(dict,list)):out.extend(flatten(v,kk))
+            else:out.append((kk,v))
+    elif isinstance(d,list):
+        for i,v in enumerate(d):out.extend(flatten(v,f'{prefix}[{i}]'))
+    return out
+def arg_metrics(pred,gold):
+    correct=sum(1 for k,v in gold.items() if k in pred and norm(pred[k])==norm(v));p=correct/max(1,len(pred));r=correct/max(1,len(gold));f=2*p*r/max(1e-12,p+r)
+    return correct,len(gold),f,int(correct==len(gold) and len(pred)==len(gold))
 
-def build_global_graph(ns, rows):
-    LABEL2PID=ns['LABEL2PID']
-    triples=set(); rel_objects=defaultdict(set); unmapped=Counter()
-    for row in rows:
-        for t in list(row.get('new_triples_labeled') or []):
-            if not isinstance(t,(list,tuple)) or len(t)<3:
-                unmapped['MALFORMED']+=1; continue
-            s,rlabel,o=map(str,t[:3])
-            if rlabel not in LABEL2PID:
-                unmapped[rlabel]+=1; continue
-            r=LABEL2PID[rlabel]; triples.add((s,r,o)); rel_objects[(s,r)].add(o)
-    adj=defaultdict(list)
-    # All benchmark edits are concurrent here; no arbitrary case-order recency signal.
-    for s,r,o in triples: adj[s].append((r,o,0,0))
-    for s,es in list(adj.items()):
-        for r,o,ser,rank in list(es):
-            if r=='P26': adj[o].append((r,s,0,0))
-    collisions={f'{s}|||{r}':len(os) for (s,r),os in rel_objects.items() if len(os)>1}
-    return adj, {'unique_triples':len(triples),'registers':len(rel_objects),'conflicting_registers':len(collisions),'max_objects_per_register':max(collisions.values()) if collisions else 1,'unmapped_relations':dict(unmapped)}
+def build_session_map(cp):
+    sessions=[];by_source=defaultdict(list)
+    for row in load_jsonl(cp):
+        i=len(sessions);sessions.append(row)
+        for sid in row.get('original_conversation_ids') or []:by_source[str(sid)].append(i)
+    return sessions,by_source
+def find_session(qa,sessions,by_source):
+    ids=[str(x) for x in qa.get('source_conversation_ids') or []];cand=None
+    for sid in ids:
+        z=set(by_source.get(sid,[]));cand=z if cand is None else cand&z
+    if cand:return sessions[min(cand)]
+    u=set()
+    for sid in ids:u.update(by_source.get(sid,[]))
+    return sessions[min(u)] if u else None
 
-def train_frozen_ranker(ns,model,rel_emb,rel_ids):
-    srcs=['factconsolidation_mh_6k','factconsolidation_mh_32k','factconsolidation_mh_64k','factconsolidation_mh_262k']
-    ds=load_dataset('ai-hyz/MemoryAgentBench',split='Conflict_Resolution',revision='main')
-    rows={(r.get('metadata') or {}).get('source'):r for r in ds if (r.get('metadata') or {}).get('source') in srcs}
-    D={s:ns['build'](rows[s],model,rel_emb,rel_ids) for s in srcs}
-    held={ns['norm'](e['q']) for s in srcs[2:] for e in D[s]['examples']}
-    dev=[e for s in srcs[:2] for e in D[s]['examples'] if ns['norm'](e['q']) not in held]
-    return ns['train_ranker'](dev),len(dev)
+def spans(text):
+    vals=[]
+    pats=[
+      r'https?://[^\s\]\[\)\(<>"\']+', r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}',
+      r'\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?Z?)?\b', r'\b(?:19|20)\d{2}\b',
+      r'\b[A-Z][A-Z0-9._/-]{1,12}\b', r'\b\d+(?:\.\d+)?\b', r'"([^"\n]{1,80})"', r"'([^'\n]{1,80})'"
+    ]
+    for pat in pats:
+        for m in re.finditer(pat,text):
+            v=m.group(1) if m.lastindex else m.group(0); vals.append(v.strip())
+    # short title-cased entities/phrases; candidates only, never auto-selected.
+    for m in re.finditer(r'\b(?:[A-Z][\w.-]+)(?:\s+(?:[A-Z][\w.-]+)){0,3}\b',text):vals.append(m.group(0).strip())
+    seen=set();out=[]
+    for v in vals:
+        z=norm(v)
+        if z and z not in seen and len(str(v))<=100:seen.add(z);out.append(v)
+    return out
 
-def evaluate_global(ns,model,rel_emb,rel_ids,clf,split='CF3k'):
-    rows=list(load_dataset('henryzhongsc/MQuAKE-Remastered',split=split))
-    adj,state=build_global_graph(ns,rows); typ,roles=ns['type_map'](adj)
-    agg=defaultdict(lambda:{'questions':0,'answer_exact':0,'anchor':0,'endpoint_oracle':0,'program_oracle':0})
-    candidate_program_counts=[]; path_counts=[]
-    for ci,row in enumerate(rows):
-        answers=ns['remastered_answers'](row); qs=row.get('questions') or []
-        if isinstance(qs,str): qs=[qs]
-        bucket=str(len(list(row.get('new_triples_labeled') or [])))
-        for q in qs:
-            A=agg[bucket]; A['questions']+=1
-            st=ns['anchor'](q,adj); A['anchor']+=int(st is not None)
-            ps=ns['paths'](st,adj,maxh=4,cap=50000); path_counts.append(len(ps)); by=defaultdict(list)
-            for p in ps: by[ns['seq'](p)].append(p)
-            A['endpoint_oracle']+=int(any(ns['exact'](p[-1][2],answers) for p in ps))
-            programs=list(by); candidate_program_counts.append(len(programs))
-            gold_programs={s for s,pp in by.items() if any(ns['exact'](p[-1][2],answers) for p in pp)}
-            if gold_programs: A['program_oracle']+=1
-            if not programs: continue
-            feats=ns['feature_rows'](q,st,programs,by,model,rel_emb,rel_ids,typ,roles)
-            e={'programs':programs,'features':feats}; idx=ns['prefilter'](e,12)
-            if not idx: continue
-            probs=clf.predict_proba(np.asarray([feats[i] for i in idx]))[:,1]
-            best=idx[int(np.argmax(probs))]; pred=ns['choose_path'](by[programs[best]],typ,roles,0)
-            A['answer_exact']+=int(pred is not None and ns['exact'](pred[-1][2],answers))
-        if (ci+1)%250==0: print(f'GLOBAL_PROGRESS {ci+1}/{len(rows)}',flush=True)
-    keys=['questions','answer_exact','anchor','endpoint_oracle','program_oracle']
-    total={k:sum(v[k] for v in agg.values()) for k in keys}
-    def fmt(v):
-        n=max(1,v['questions']); return {'questions':v['questions'],'exact_match':v['answer_exact']/n,'anchor_coverage':v['anchor']/n,'endpoint_path_oracle':v['endpoint_oracle']/n,'program_oracle':v['program_oracle']/n}
-    return {'split':split,'cases':len(rows),'global_state':state,'by_chain_length':{k:fmt(v) for k,v in sorted(agg.items())},'overall':fmt(total),'mean_paths':float(np.mean(path_counts)),'p95_paths':float(np.percentile(path_counts,95)),'mean_programs':float(np.mean(candidate_program_counts))}
+def add_candidate(lst,seen,value,source,evidence=''):
+    if isinstance(value,(dict,list)) and not value:return
+    z=norm(value)
+    if not z or z in seen:return
+    seen.add(z);lst.append({'id':None,'value':value,'source':source,'evidence':str(evidence)[:180]})
+
+def compile_candidates(qa,session,enc):
+    turns=session.get('turns') or [];texts=[flat_turn(t) for t in turns]
+    schema=qa.get('target_tool_schema') or {};props=((schema.get('parameters') or {}).get('properties') or {});target=str(schema.get('name',''));query=str(qa.get('query',''))
+    events=[]
+    for i,t in enumerate(turns):
+        for tc in t.get('tool_calls') or []:
+            a=parse_args(tc)
+            if a:events.append({'turn':i,'tool':tool_name(tc),'args':a})
+    tev=[f"tool {e['tool']} arguments "+' '.join(f'{k}={v}' for k,v in flatten(e['args'])) for e in events]
+    alltxt=texts+tev;E=enc.encode(alltxt,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32) if alltxt else np.zeros((0,384),np.float32)
+    turnE=E[:len(texts)];eventE=E[len(texts):]
+    compiled={'target_tool':target,'slots':{}}
+    for p,d0 in props.items():
+        d=d0 or {};desc=str(d.get('description',''));typ=str(d.get('type','')); qtxt=f'{query} target tool {target} parameter {p} {typ} {desc}'
+        qv=enc.encode([qtxt],normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)[0]
+        cand=[];seen=set()
+        if 'default' in d:add_candidate(cand,seen,d['default'],'schema_default',desc)
+        enum=d.get('enum') or []
+        if isinstance(enum,list):
+            for v in enum:add_candidate(cand,seen,v,'schema_enum',desc)
+        # Exact same-slot values are high-value candidates, but never blindly newest-wins.
+        for e in events:
+            for k,v in flatten(e['args']):
+                if k.split('.')[-1].casefold()==p.casefold():add_candidate(cand,seen,v,'prior_same_slot',f"turn {e['turn']} tool {e['tool']}")
+        # Semantically relevant tool events expose all exact scalar values as pointers.
+        if len(eventE):
+            for ei in np.argsort(-(eventE@qv))[:min(4,len(events))]:
+                e=events[int(ei)]
+                for k,v in flatten(e['args']):add_candidate(cand,seen,v,'semantic_tool_value',f"{k}; turn {e['turn']} tool {e['tool']}")
+        # Relevant prose is evidence; extract copy-safe spans so IDs/acronyms/dates need not be regenerated.
+        evidence=[]
+        if len(turnE):
+            for ti in np.argsort(-(turnE@qv))[:min(3,len(turns))]:
+                tx=texts[int(ti)];evidence.append({'turn':int(ti),'text':tx[:500]})
+                for v in spans(tx):add_candidate(cand,seen,v,'episodic_span',f'turn {int(ti)}')
+        # Current request spans may themselves be exact executable values.
+        for v in spans(query):add_candidate(cand,seen,v,'current_request_span','current request')
+        # Cap without dropping explicit schema/same-slot candidates: first candidates are prioritized by construction.
+        cand=cand[:24]
+        for j,c in enumerate(cand):c['id']=f'{p}#{j}'
+        compiled['slots'][p]={'type':typ,'description':desc,'candidates':cand,'evidence':evidence}
+    return compiled
+
+def recursively_find(obj,key):
+    if not isinstance(obj,dict):return None
+    if key in obj:return obj[key]
+    for v in obj.values():
+        if isinstance(v,dict):
+            z=recursively_find(v,key)
+            if z is not None:return z
+    return None
+
+def coerce(v,d):
+    typ=str((d or {}).get('type','')).lower();enum=(d or {}).get('enum') or []
+    if enum:
+        for e in enum:
+            if norm(v)==norm(e):return e
+    try:
+        if typ in ('int','integer'):
+            if isinstance(v,str):v=re.sub(r'[^0-9+\-.]','',v)
+            return int(float(v))
+        if typ in ('float','number'):
+            if isinstance(v,str):v=re.sub(r'[^0-9+\-.]','',v)
+            return float(v)
+        if typ in ('bool','boolean'):
+            if isinstance(v,bool):return v
+            z=norm(v)
+            if z in ('true','yes','1'):return True
+            if z in ('false','no','0'):return False
+        if typ in ('string','str') and not isinstance(v,(dict,list)):return str(v)
+    except Exception:pass
+    return v
+
+def execute_choices(choice,compiled,schema):
+    props=((schema.get('parameters') or {}).get('properties') or {});out={}
+    for p,d in props.items():
+        x=recursively_find(choice,p)
+        candidates={c['id']:c['value'] for c in (compiled['slots'].get(p,{}).get('candidates') or [])}
+        val=None;got=False
+        if isinstance(x,dict):
+            cid=x.get('candidate') or x.get('id') or x.get('pointer')
+            if cid in candidates:val=candidates[cid];got=True
+            elif 'derive' in x:val=x['derive'];got=True
+            elif 'value' in x:val=x['value'];got=True
+        elif isinstance(x,str) and x in candidates:val=candidates[x];got=True
+        elif x is not None:val=x;got=True
+        if not got and 'default' in (d or {}):val=d['default'];got=True
+        if got:out[p]=coerce(val,d)
+    return out
+
+def generate(qa,compiled,tok,lm):
+    schema=qa.get('target_tool_schema') or {};slots={}
+    for p,s in compiled['slots'].items():
+        slots[p]={'type':s['type'],'description':s['description'],'candidates':s['candidates'],'evidence':s['evidence']}
+    prompt=(
+      'Resolve every target tool parameter. You are NOT writing the final tool call. For each schema key, choose an exact candidate pointer when a candidate is correct; otherwise derive the value from the evidence/schema. '
+      'Candidate IDs copy values losslessly. Do not choose by recency alone. Prefer current semantic scope. Defaults belong to schema; explicit facts belong to memory; inferred values may require transformation. '
+      'Return ONLY JSON with exactly the schema parameter names. Each value must be either {"candidate":"slot#N"} or {"derive":<value>}. Never rename parameters and never add wrappers.\n\n'
+      'CURRENT REQUEST:\n'+str(qa.get('query',''))+'\n\nTARGET TOOL SCHEMA:\n'+json.dumps(schema,ensure_ascii=False)+'\n\nPOINTER MEMORY:\n'+json.dumps(slots,ensure_ascii=False)
+    )
+    msgs=[{'role':'system','content':'Output strict JSON only.'},{'role':'user','content':prompt}]
+    text=tok.apply_chat_template(msgs,tokenize=False,add_generation_prompt=True);inp=tok(text,return_tensors='pt',truncation=True,max_length=7168)
+    with torch.inference_mode():gen=lm.generate(**inp,max_new_tokens=220,do_sample=False,pad_token_id=tok.eos_token_id)
+    raw=tok.decode(gen[0,inp['input_ids'].shape[1]:],skip_special_tokens=True);choice=parse_json_obj(raw);return execute_choices(choice,compiled,schema),choice,raw
 
 def main():
-    ns=load_frozen_source(); model=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu')
-    rel_ids=list(ns['RELNAME']); rel_text=[ns['RELNAME'][r]+'. '+', '.join(ns['CUES'].get(r,[])) for r in rel_ids]
-    rel_emb=model.encode(rel_text,normalize_embeddings=True,convert_to_numpy=True,show_progress_bar=False).astype(np.float32)
-    clf,n=train_frozen_ranker(ns,model,rel_emb,rel_ids)
-    result=evaluate_global(ns,model,rel_emb,rel_ids,clf,'CF3k')
-    out={'stage':'MQuAKE-Remastered CF3k structured-memory 3000-edit interference gate','protocol':'all 3000 cases are loaded simultaneously into one global structured memory; parser/ranker/cues remain frozen from MAB 6K+32K','training_examples':n,'result':result,'interpretation_guardrail':'This consumes new_triples_labeled (benchmark structured annotations), so it tests memory interference + question-to-relation-program execution. It is NOT directly comparable to end-to-end model-editing methods that ingest requested_rewrite and must derive downstream knowledge themselves.'}
-    OUT.write_text(json.dumps(out,indent=2,ensure_ascii=False)); print('GLOBAL_3000_EDIT='+json.dumps(out,ensure_ascii=False),flush=True)
-
-if __name__=='__main__': main()
+    td=Path(tempfile.gettempdir())/'mem2act_pointer';td.mkdir(exist_ok=True);qp=td/'qa.jsonl';cp=td/'conv.jsonl';fetch(BASE+'qa_dataset.jsonl',qp);fetch(BASE+'toolmem_conversation.jsonl',cp)
+    qas=list(load_jsonl(qp))[:N_EVAL];sessions,by_source=build_session_map(cp)
+    enc=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu');tok=AutoTokenizer.from_pretrained(MODEL);lm=AutoModelForCausalLM.from_pretrained(MODEL,dtype=torch.float32,device_map=None).eval()
+    sc=sg=0;f1s=[];exacts=[];missing=0;by_level=defaultdict(lambda:[0,0.,0]);sizes=[];samples=[]
+    for i,qa in enumerate(qas):
+        s=find_session(qa,sessions,by_source)
+        if s is None:missing+=1;continue
+        comp=compile_candidates(qa,s,enc);sizes.append(len(json.dumps(comp,ensure_ascii=False)));pred,choice,raw=generate(qa,comp,tok,lm);gold=((qa.get('tool_call') or {}).get('arguments') or {})
+        c,n,f,ex=arg_metrics(pred,gold);sc+=c;sg+=n;f1s.append(f);exacts.append(ex);lvl=str((qa.get('complexity_metadata') or {}).get('level','?'));by_level[lvl][0]+=1;by_level[lvl][1]+=f;by_level[lvl][2]+=ex
+        if len(samples)<4:samples.append({'qa_id':qa.get('qa_id'),'pred':pred,'choice':choice,'gold':gold,'compiled_chars':sizes[-1],'raw':raw[:350]})
+        if (i+1)%10==0:print(f'POINTER_PROGRESS {i+1}/{len(qas)} meanF1={np.mean(f1s):.4f}',flush=True)
+    result={'tasks':len(f1s),'micro_parameter_accuracy':sc/max(1,sg),'macro_parameter_f1':float(np.mean(f1s)) if f1s else 0.,'exact_argument_set':float(np.mean(exacts)) if exacts else 0.,'missing_session':missing,'mean_compiled_memory_chars':float(np.mean(sizes)) if sizes else 0.,'by_level':{k:{'n':v[0],'macro_f1':v[1]/max(1,v[0]),'exact':v[2]/max(1,v[0])} for k,v in sorted(by_level.items())},'samples':samples}
+    out={'benchmark':'Mem2ActBench released data','subset':'first 100 release-order tasks; six known release source mappings absent','model':MODEL,'architecture':'pointer-grounded typed slot memory: exact action-event/schema/request/episodic candidates + derive escape hatch + deterministic schema projection/type coercion','result':result,'comparison_reference_same94':{'flat_semantic_f1':0.009658899020601148,'typed_free_generation_f1':0.2868659848009035},'guardrail':'Gold tool arguments and grounding_info are scoring labels only; they do not construct candidates, prompts, pointers, or postprocessing.'}
+    OUT.write_text(json.dumps(out,indent=2,ensure_ascii=False));print('MEM2ACT_POINTER_COMPILER='+json.dumps(out,ensure_ascii=False),flush=True)
+if __name__=='__main__':main()
