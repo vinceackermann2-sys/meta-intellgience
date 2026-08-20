@@ -22,6 +22,8 @@ On QA001-100 development oracle analysis:
 
 Rationale: the previous inferred candidate space had only 25% coverage, equal to the old threshold and therefore no safety margin.
 
+**Result (2026-08-20): PASS.** Query-independent concept/property compilation over answer-blind repaired sessions achieved **93.41% explicit** and **42.50% inferred** exact-property availability. Mean total compiled properties/session = **769.71**; mean concept properties added = **238.56**. This is an oracle/formation result only, not an action score or breakthrough claim. Run: `32406998445`.
+
 ## Gate SWM-B — cross-schema semantic binding
 5-fold QA-level CV on QA001-100:
 - explicit top-1 exact dereference >= 50%
