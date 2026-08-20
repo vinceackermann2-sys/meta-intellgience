@@ -1,0 +1,1 @@
+QA001-100 only. Same released histories and target schemas as prior 0.5B Mem2Act dev runs. Per-slot atomic resolver; no gold arguments, grounding_info, or evolution labels are available to compilation or generation. Reports global parameter precision/recall/F1 and macro diagnostics. QA101-400 held-out labels remain sealed.
