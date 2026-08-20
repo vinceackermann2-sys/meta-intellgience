@@ -70,7 +70,8 @@ def fit(rows,ids,C):
     for r in rows:
         if r['qi'] not in ids:continue
         for s in r['slots']:SX.append(s['stage_x']);SY.append(s['stage_y'])
-    stage=LogisticRegression(C=C,max_iter=4000,class_weight='balanced',random_state=42,multi_class='auto').fit(np.asarray(SX,float),np.asarray(SY,int))
+    # scikit-learn >=1.9 removed the multi_class constructor argument; default multiclass handling is used.
+    stage=LogisticRegression(C=C,max_iter=4000,class_weight='balanced',random_state=42).fit(np.asarray(SX,float),np.asarray(SY,int))
     PX,PY=pair_data(rows,ids)
     rank=LogisticRegression(C=C,max_iter=5000,fit_intercept=False,random_state=42).fit(PX,PY) if len(PY) else None
     return stage,rank,len(SY),len(PY)
