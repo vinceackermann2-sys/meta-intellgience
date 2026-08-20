@@ -1,22 +1,16 @@
-name: mem2act-selective-vm
-
+name: mem2act-inferred-residual-v2
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchstrong/selective_slotvm.py'
-      - 'researchstrong/strong_banking77.py'
+      - 'researchstrong/inferred_residual_v2.py'
       - '.github/workflows/mem2act-selective-vm.yml'
-  workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
-  selective-vm:
-    if: startsWith(github.head_ref, 'research/mem2act-selective-vm')
+  inferred-residual-v2:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,16 +19,15 @@ jobs:
       - name: Install CPU research dependencies
         run: |
           python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
-          python -m pip install --disable-pip-version-check --no-cache-dir datasets sentence-transformers scikit-learn
-      - name: Run selective residual slot VM
+          python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn transformers python-dateutil pycountry webcolors
+      - name: Run residual semantic-capacity comparison
+        working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python researchstrong/selective_slotvm.py
-      - name: Upload result
+        run: python inferred_residual_v2.py
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: mem2act-selective-vm-result
-          path: researchstrong/selective_slotvm_result.json
-          if-no-files-found: warn
-          retention-days: 30
+          name: mem2act-inferred-residual-v2-result
+          path: researchstrong/inferred_residual_v2_result.json
+          retention-days: 90
