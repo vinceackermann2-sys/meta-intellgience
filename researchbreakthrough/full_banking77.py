@@ -1,5 +1,5 @@
 import json, re, string
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pathlib import Path
 from datasets import load_dataset
 
@@ -56,14 +56,14 @@ def parse_fact(text):
     m=OFFICEHOLDER.match(text)
     return (m.group(1).strip(),'P1308',m.group(2).strip()) if m else None
 
-def facts(context):
-    out=[]
+def parse_context(context):
+    fs=[]
     for line in context.splitlines():
         m=re.match(r'^(\d+)\.\s+(.*\S)\s*$',line)
         if m:
             z=parse_fact(m.group(2))
-            if z: out.append((int(m.group(1)),*z,m.group(2)))
-    return out
+            if z:fs.append((int(m.group(1)),*z))
+    return fs
 
 def norm(s):
     s=s.lower();s=''.join(c for c in s if c not in string.punctuation)
@@ -76,77 +76,78 @@ def golds(a):
 
 def is_gold(x,a):return any(norm(x)==norm(g) for g in golds(a))
 
-def build(context):
-    fs=facts(context); latest={}; all_adj=defaultdict(list)
-    for serial,s,r,o,text in fs:
-        all_adj[s].append((r,o,serial,text))
-        k=(s,r)
-        if k not in latest or serial>latest[k][0]:latest[k]=(serial,o,text)
-    # spouse inverse history; inverse carries source serial and only supplements traversal.
-    for serial,s,r,o,text in list(fs):
-        if r=='P26':all_adj[o].append((r,s,serial,'[inverse] '+text))
-    current=defaultdict(list)
-    for (s,r),(serial,o,text) in latest.items():current[s].append((r,o,serial,text))
-    for (s,r),(serial,o,text) in list(latest.items()):
-        if r=='P26' and (o,'P26') not in latest:current[o].append((r,s,serial,'[inverse] '+text))
-    return fs,latest,all_adj,current
+def registers(fs):
+    reg=defaultdict(dict)
+    for serial,s,r,o in fs:
+        # For each distinct object retain only its newest occurrence.  K therefore
+        # measures distinct semantic versions, not duplicate copies of one fact.
+        reg[(s,r)][o]=max(serial,reg[(s,r)].get(o,-1))
+    return {k:sorted(((serial,o) for o,serial in vals.items()),reverse=True) for k,vals in reg.items()}
 
-def anchor(q,adj):
-    qf=q.casefold();c=[e for e in adj if e.casefold() in qf]
+def make_adj(reg,k):
+    adj=defaultdict(list); kept=0
+    for (s,r),versions in reg.items():
+        take=versions if k is None else versions[:k]
+        for serial,o in take:
+            adj[s].append((r,o,serial));kept+=1
+    # P26 is symmetric for traversal.  Add inverse traversals without counting
+    # them as stored state; they are a derived index over the same version edge.
+    for s,edges in list(adj.items()):
+        for r,o,serial in list(edges):
+            if r=='P26':adj[o].append((r,s,serial))
+    return adj,kept
+
+def anchor(q,subjects):
+    qf=q.casefold();c=[e for e in subjects if e.casefold() in qf]
     if c:return max(c,key=len)
-    nq=norm(q);c=[e for e in adj if norm(e) and norm(e) in nq]
+    nq=norm(q);c=[e for e in subjects if norm(e) and norm(e) in nq]
     return max(c,key=len) if c else None
 
-def paths(start,adj,max_hops=4,cap=200000):
-    out=[];stack=[(start,[],{start})]
-    while stack and len(out)<cap:
-        node,edges,seen=stack.pop()
-        if edges:out.append(edges)
-        if len(edges)>=max_hops:continue
-        for r,o,serial,text in adj.get(node,[]):
-            if o in seen:continue
-            stack.append((o,edges+[(node,r,o,serial,text)],seen|{o}))
-    return out
+def reachable_gold(start,adj,a,max_hops=4):
+    if not start:return False
+    stack=[(start,0,{start})]
+    while stack:
+        node,h,seen=stack.pop()
+        if h>=max_hops:continue
+        for _r,o,_serial in adj.get(node,[]):
+            if is_gold(o,a):return True
+            if o not in seen:stack.append((o,h+1,seen|{o}))
+    return False
 
-def endpoint(p):return p[-1][2]
-
-def forensic(row):
-    fs,latest,all_adj,current=build(row['context'])
+def eval_row(row):
+    fs=parse_context(row['context']);reg=registers(fs)
     qs=list(row['questions']);ans=list(row['answers'])
-    failed=[]; cur_oracle=[]; hist_oracle=[]
-    for q,a in zip(qs,ans):
-        st=anchor(q,all_adj)
-        cp=paths(st,current) if st else []
-        hp=paths(st,all_adj) if st else []
-        co=any(is_gold(endpoint(p),a) for p in cp); ho=any(is_gold(endpoint(p),a) for p in hp)
-        cur_oracle.append(int(co));hist_oracle.append(int(ho))
-        if co:continue
-        gps=[p for p in hp if is_gold(endpoint(p),a)]
-        # Prefer shortest gold path; then smallest serial span, then newest minimum serial.
-        gps.sort(key=lambda p:(len(p), max(e[3] for e in p)-min(e[3] for e in p), -min(e[3] for e in p)))
-        sample=[]
-        for p in gps[:8]:
-            edgeinfo=[]
-            for s,r,o,serial,text in p:
-                ls=latest.get((s,r),(None,None,None))[0]
-                lo=latest.get((s,r),(None,None,None))[1]
-                edgeinfo.append({'s':s,'r':r,'o':o,'serial':serial,'latest_serial':ls,'latest_object':lo,'is_local_latest':serial==ls})
-            ser=[e[3] for e in p]
-            sample.append({'endpoint':endpoint(p),'hops':len(p),'serials':ser,'serial_span':max(ser)-min(ser),
-                           'min_serial':min(ser),'max_serial':max(ser),'all_local_latest':all(e['is_local_latest'] for e in edgeinfo),
-                           'edges':edgeinfo})
-        failed.append({'q':q,'gold':golds(a),'anchor':st,'history_gold_path_exists':ho,
-                       'history_candidates':len(hp),'gold_path_count':len(gps),'gold_paths':sample})
-    return {'source':(row.get('metadata') or {}).get('source',''),'history_facts':len(fs),'latest_registers':len(latest),
-            'current_path_oracle':sum(cur_oracle)/len(cur_oracle),'full_history_path_oracle':sum(hist_oracle)/len(hist_oracle),
-            'missing_current':len(failed),'failures':failed}
+    subjects=set(s for s,_r in reg)
+    ks=[1,2,3,4,8,None]; per={}; reached_by_q={i:[] for i in range(len(qs))}
+    for k in ks:
+        adj,kept=make_adj(reg,k); hit=[]
+        for i,(q,a) in enumerate(zip(qs,ans)):
+            st=anchor(q,subjects);ok=reachable_gold(st,adj,a);hit.append(int(ok))
+            if ok:reached_by_q[i].append(k if k is not None else 999)
+        name='all' if k is None else str(k)
+        per[name]={'path_oracle':sum(hit)/len(hit),'stored_version_edges':kept,
+                   'edge_multiplier_vs_K1':None}
+    base=per['1']['stored_version_edges']
+    for z in per.values():z['edge_multiplier_vs_K1']=z['stored_version_edges']/base
+    min_k=[]
+    for i in range(len(qs)):
+        vals=reached_by_q[i]
+        min_k.append(min(vals) if vals else None)
+    dist=Counter(('unreachable' if x is None else ('all_only' if x==999 else str(x))) for x in min_k)
+    # Register version-depth statistics explain the state cost independent of QA.
+    depths=[len(v) for v in reg.values()]
+    return {'source':(row.get('metadata') or {}).get('source',''),'history_facts':len(fs),
+            'logical_registers':len(reg),'distinct_version_edges':sum(depths),
+            'register_depth_mean':sum(depths)/len(depths),'register_depth_max':max(depths),
+            'registers_with_conflicts':sum(d>1 for d in depths),'versions':per,
+            'minimum_K_to_recover_gold_path_distribution':dict(dist)}
 
 def main():
     ds=load_dataset('ai-hyz/MemoryAgentBench',split='Conflict_Resolution',revision='main')
-    targets=[r for r in ds if (r.get('metadata') or {}).get('source') in {'factconsolidation_mh_6k','factconsolidation_mh_32k','factconsolidation_mh_64k','factconsolidation_mh_262k'}]
-    result={'stage':'forensic comparison: independent latest registers vs full version-history gold-path reachability',
-            'note':'gold is used only to diagnose state-loss after the answer-blind benchmark; not a prediction method',
-            'rows':[forensic(r) for r in targets]}
+    wanted={'factconsolidation_mh_6k','factconsolidation_mh_32k','factconsolidation_mh_64k','factconsolidation_mh_262k'}
+    rows=[eval_row(r) for r in ds if (r.get('metadata') or {}).get('source') in wanted]
+    result={'stage':'bounded distinct-version stack oracle audit','gold_usage':'diagnostic reachability only; no gold used for prediction',
+            'hypothesis':'small K-version stacks recover paths destroyed by K=1 newest-only consolidation','rows':rows}
     OUT.write_text(json.dumps(result,indent=2,ensure_ascii=False))
-    print('VERSION_CHAIN_FORENSICS='+json.dumps(result,ensure_ascii=False))
+    print('VERSION_STACK_AUDIT='+json.dumps(result,ensure_ascii=False))
 if __name__=='__main__':main()
