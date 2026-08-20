@@ -1,13 +1,13 @@
-import json, re, urllib.parse, urllib.request
+import json, re
 from pathlib import Path
 import numpy as np
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 from sklearn.svm import LinearSVC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 SOURCE='icl_banking77_5900shot_balance'
-HF_ROWS='https://datasets-server.huggingface.co/first-rows?dataset='+urllib.parse.quote('ai-hyz/MemoryAgentBench',safe='')+'&config=default&split=Test_Time_Learning'
 OUT=Path('researchstrong/strong_banking77_result.json')
 
 def norm(x):
@@ -16,70 +16,31 @@ def norm(x):
 def acc(p,y):
     return float(np.mean(np.asarray(p,dtype=int)==np.asarray(y,dtype=int)))
 
-def as_obj(v):
-    if isinstance(v,dict): return v
-    if isinstance(v,str):
-        try: return json.loads(v)
-        except Exception: return {'_raw':v}
-    return {}
-
-def as_list(v):
-    if isinstance(v,list): return v
-    if isinstance(v,str):
-        try:
-            z=json.loads(v)
-            return z if isinstance(z,list) else [z]
-        except Exception: return [v]
-    return [] if v is None else [v]
-
 def load_official():
-    req=urllib.request.Request(HF_ROWS,headers={'User-Agent':'memory-gate/1.0'})
-    with urllib.request.urlopen(req,timeout=120) as r:
-        data=json.loads(r.read().decode('utf-8'))
-    rows=data.get('rows',[]); row=None
-    # Preferred selection: canonical metadata source.
-    for wrap in rows:
-        z=wrap.get('row',{}); meta=as_obj(z.get('metadata'))
-        if meta.get('source')==SOURCE:
-            row=z; break
-    # The lightweight HF rows endpoint has changed metadata serialization before.
-    # Structural fallback is benchmark-specific but data-preserving: the official Banking77 row
-    # uniquely has ~5900 `label:` demonstrations and exactly 100 questions.
-    if row is None:
-        for wrap in rows:
-            z=wrap.get('row',{}); context=z.get('context') or ''; qs=as_list(z.get('questions'))
-            if len(qs)==100 and context.count('\nlabel:')>=5800:
-                row=z; break
-    # Native datasets inspection independently verified Banking77 is row index 1 in this split.
-    if row is None and len(rows)>1:
-        z=rows[1].get('row',{})
-        if (z.get('context') or '').count('\nlabel:')>=5800: row=z
-    if row is None: raise RuntimeError('official Banking77 TTL row not found')
-    context=row['context']
+    ds=load_dataset('ai-hyz/MemoryAgentBench',split='Test_Time_Learning',revision='main')
+    matches=[row for row in ds if (row.get('metadata') or {}).get('source')==SOURCE]
+    if len(matches)!=1: raise RuntimeError(f'expected one Banking77 row, got {len(matches)}')
+    row=matches[0]; context=row['context']
     pairs=[]
     for m in re.finditer(r'(?:\A|\n\n)(.*?)\nlabel:\s*(\d+)\s*(?=\n\n|\Z)',context,re.S):
         text=m.group(1).strip(); label=int(m.group(2))
         if text: pairs.append((text,label))
-    questions=as_list(row.get('questions')); answers=as_list(row.get('answers'))
-    y=[]
-    for a in answers:
-        aa=as_list(a)
-        if not aa: raise RuntimeError('empty answer')
-        y.append(int(aa[0]))
-    if not (5800 <= len(pairs) <= 6000): raise RuntimeError(f'parsed {len(pairs)} demonstrations, expected ~5900')
+    questions=list(row.get('questions') or [])
+    answers=list(row.get('answers') or [])
+    y=[int((a if isinstance(a,list) else [a])[0]) for a in answers]
+    if len(pairs)!=5900: raise RuntimeError(f'parsed {len(pairs)} demonstrations, expected 5900')
     if len(questions)!=100 or len(y)!=100: raise RuntimeError((len(questions),len(y)))
-    labels=sorted(set(v for _,v in pairs))
-    if labels!=list(range(77)): raise RuntimeError(f'labels={labels}')
+    if sorted(set(v for _,v in pairs))!=list(range(77)): raise RuntimeError('unexpected label set')
     return pairs,questions,np.asarray(y,dtype=np.int64),len(context)
 
 class OnlineProto:
     def __init__(self,nc,d,K):
-        self.K=K; self.P=[[] for _ in range(nc)]; self.N=[[] for _ in range(nc)]; self.d=d
+        self.K=K; self.P=[[] for _ in range(nc)]; self.N=[[] for _ in range(nc)]
     def write(self,x,y):
         p=self.P[y]
         if len(p)<self.K:
             p.append(x.copy()); self.N[y].append(1); return
-        P=norm(np.stack(p)); j=int((P@x).argmax()); n=self.N[y][j]+1
+        j=int((norm(np.stack(p))@x).argmax()); n=self.N[y][j]+1
         p[j]=p[j]+(x-p[j])/n; self.N[y][j]=n
     def pred(self,Q):
         S=np.full((len(Q),len(self.P)),-1e9,np.float32)
@@ -89,23 +50,21 @@ class OnlineProto:
     def vectors(self): return sum(len(x) for x in self.P)
 
 class HardExceptionMemory:
-    """One semantic state per class plus a tiny boundary-exception cache."""
     def __init__(self,X,y,nc,K):
         self.C=np.stack([norm(X[y==c].mean(0,keepdims=True))[0] for c in range(nc)])
-        base=X@self.C.T; pred=base.argmax(1)
-        self.E=[]; self.Ey=[]
+        base=X@self.C.T; pred=base.argmax(1); self.E=[]; self.Ey=[]
         for c in range(nc):
             ids=np.where(y==c)[0]; wrong=ids[pred[ids]!=c]
             if len(wrong):
                 margin=base[wrong].max(1)-base[wrong,c]
-                chosen=list(wrong[np.argsort(-margin)[:K]])
+                chosen=list(map(int,wrong[np.argsort(-margin)[:K]]))
             else: chosen=[]
-            chosen_set=set(map(int,chosen))
+            seen=set(chosen)
             if len(chosen)<K:
-                left=[int(i) for i in ids[np.argsort(X[ids]@self.C[c])] if int(i) not in chosen_set]
-                chosen+=left[:K-len(chosen)]
+                far=[int(i) for i in ids[np.argsort(X[ids]@self.C[c])] if int(i) not in seen]
+                chosen+=far[:K-len(chosen)]
             for i in chosen:
-                self.E.append(X[int(i)].copy()); self.Ey.append(c)
+                self.E.append(X[i].copy()); self.Ey.append(c)
         self.E=np.stack(self.E) if self.E else np.zeros((0,X.shape[1]),np.float32)
         self.Ey=np.asarray(self.Ey,dtype=np.int64)
     def pred(self,Q,gamma):
@@ -153,9 +112,9 @@ def main():
 
     ti,vi=tune_split(y); Xt,yt,Xv,yv=X[ti],y[ti],X[vi],y[vi]
     for name,grid,builder in [
-        ('logreg',[.03,.1,.3,1,3,10,30],lambda h:LogisticRegression(C=h,max_iter=3000,solver='lbfgs')),
-        ('linear_svm',[.003,.01,.03,.1,.3,1,3],lambda h:LinearSVC(C=h,max_iter=10000)),
-        ('ridge',[.03,.1,.3,1,3,10,30],lambda h:RidgeClassifier(alpha=h)),
+        ('logreg',[.1,.3,1,3,10],lambda h:LogisticRegression(C=h,max_iter=2000,solver='lbfgs')),
+        ('linear_svm',[.01,.03,.1,.3,1],lambda h:LinearSVC(C=h,max_iter=7000)),
+        ('ridge',[.1,.3,1,3,10],lambda h:RidgeClassifier(alpha=h)),
     ]:
         best=(-1,None)
         for h in grid:
@@ -168,18 +127,19 @@ def main():
     scores['shrinkage_lda']=acc(lda.predict(Q),qy); memory['shrinkage_lda']=None
 
     best=(-1,None,None); cut=int(len(X)*0.8); classes=np.arange(nc)
-    for alpha in [1e-6,1e-5,1e-4,1e-3]:
-        for eta in [.001,.003,.01,.03,.1]:
+    for alpha in [1e-6,1e-5,1e-4]:
+        for eta in [.001,.003,.01,.03]:
             m=SGDClassifier(loss='log_loss',alpha=alpha,learning_rate='constant',eta0=eta,random_state=0)
             for i in range(cut): m.partial_fit(X[i:i+1],y[i:i+1],classes=classes if i==0 else None)
             a=acc(m.predict(X[cut:]),y[cut:])
             if a>best[0]: best=(a,alpha,eta)
     m=SGDClassifier(loss='log_loss',alpha=best[1],learning_rate='constant',eta0=best[2],random_state=0)
     for i in range(len(X)): m.partial_fit(X[i:i+1],y[i:i+1],classes=classes if i==0 else None)
-    scores['online_sgd_onepass']=acc(m.predict(Q),qy); memory['online_sgd_onepass']=int(m.coef_.nbytes); detail['online_sgd_onepass']={'validation':best[0],'alpha':best[1],'eta':best[2]}
+    scores['online_sgd_onepass']=acc(m.predict(Q),qy); memory['online_sgd_onepass']=int(m.coef_.nbytes)
+    detail['online_sgd_onepass']={'validation':best[0],'alpha':best[1],'eta':best[2]}
 
     A=Xt.T@Xt; B=np.eye(nc,dtype=np.float32)[yt].T@Xt; best=(-1,None)
-    for lam in [.01,.03,.1,.3,1,3,10,30,100]:
+    for lam in [.1,.3,1,3,10,30]:
         W=np.linalg.solve(A+lam*np.eye(d,dtype=np.float32),B.T).T
         a=acc((Xv@W.T).argmax(1),yv)
         if a>best[0]: best=(a,lam)
