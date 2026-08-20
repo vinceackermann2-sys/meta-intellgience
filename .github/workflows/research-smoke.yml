@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchbreakthrough/**'
+      - 'researchbreakthrough/full_banking77.py'
   workflow_dispatch:
 
 permissions:
