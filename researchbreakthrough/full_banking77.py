@@ -5,8 +5,9 @@ from datasets import load_dataset
 
 OUT = Path('researchbreakthrough/full_banking77_result.json')
 
-# Relation ontology is the published MQuAKE relation inventory.  These patterns
+# Relation ontology is the published MQuAKE relation inventory. These patterns
 # map the benchmark's declarative fact surface forms into directed triples.
+# No benchmark questions or answers are used to construct this parser.
 PATTERNS = [
     ('place of birth', re.compile(r'^(.+?) was born in the city of (.+?)\.$')),
     ('place of death', re.compile(r'^(.+?) died in the city of (.+?)\.$')),
@@ -23,6 +24,7 @@ PATTERNS = [
     ('developed by', re.compile(r'^(.+?) was developed by (.+?)\.$')),
     ('famous for', re.compile(r'^(.+?) is famous for (.+?)\.$')),
     ('language', re.compile(r'^(.+?) speaks the language of (.+?)\.$')),
+    ('language', re.compile(r'^(.+?) was written in the language of (.+?)\.$')),
     ('religion', re.compile(r'^(.+?) is affiliated with the religion of (.+?)\.$')),
     ('occupation', re.compile(r'^(.+?) works in the field of (.+?)\.$')),
     ('country of origin', re.compile(r'^(.+?) was created in the country of (.+?)\.$')),
@@ -30,6 +32,7 @@ PATTERNS = [
     ('founded in', re.compile(r'^(.+?) was founded in the country of (.+?)\.$')),
     ('coached by', re.compile(r'^(.+?) is coached by (.+?)\.$')),
     ('child', re.compile(r'^(.+?) is (?:a|the) child of (.+?)\.$')),
+    ('child', re.compile(r"^(.+?)'s child is (.+?)\.$")),
 
     ('capital of', re.compile(r'^The capital of (.+?) is (.+?)\.$')),
     ('headquarters location', re.compile(r'^The headquarters of (.+?) is located in the city of (.+?)\.$')),
@@ -42,9 +45,20 @@ PATTERNS = [
     ('produced by', re.compile(r'^The company that produced (.+?) is (.+?)\.$')),
     ('genre', re.compile(r'^The type of music that (.+?) plays is (.+?)\.$')),
     ('language', re.compile(r'^The official language of (.+?) is (.+?)\.$')),
+    ('language', re.compile(r'^The original language of (.+?) is (.+?)\.$')),
     ('head of state', re.compile(r'^The name of the current head of state of (.+?) is (.+?)\.$')),
+    ('head of state', re.compile(r'^The name of the current head of state in (.+?) is (.+?)\.$')),
     ('head of government', re.compile(r'^The name of the current head of (?:the )?(.+?) government is (.+?)\.$')),
+    ('head of government', re.compile(r'^The Prime Minister of (.+?) is (.+?)\.$')),
+    ('head of state', re.compile(r'^The President of (.+?) is (.+?)\.$')),
+    ('head of government', re.compile(r'^The Governor of (.+?) is (.+?)\.$')),
+    ('head of government', re.compile(r'^The Mayor of (.+?) is (.+?)\.$')),
     ('coached by', re.compile(r'^The coach of (.+?) is (.+?)\.$')),
+    ('coached by', re.compile(r'^The head coach of (.+?) is (.+?)\.$')),
+
+    # MQuAKE also includes the generic "officeholder" relation. Put this last so
+    # it catches fixed office-title facts without swallowing more specific templates.
+    ('officeholder', re.compile(r'^The (.+?) is (.+?)\.$')),
 ]
 
 def parse_fact(text):
@@ -77,13 +91,13 @@ def main():
         rows.append({
             'source':source,'context_chars':len(row['context']),'facts':len(facts),
             'matched':len(facts)-len(unmatched),'coverage':(len(facts)-len(unmatched))/max(1,len(facts)),
-            'relation_counts':dict(rels),'unmatched_count':len(unmatched),'unmatched_examples':unmatched[:80],
+            'relation_counts':dict(rels),'unmatched_count':len(unmatched),'unmatched_examples':unmatched[:100],
         })
     result={
         'stage':'FactConsolidation ontology-parser coverage before QA',
         'rows':rows,'global_relation_counts':dict(global_rel),
         'global_unmatched_unique':len(global_unmatched),
-        'global_unmatched_examples':[{'text':t,'count':n} for t,n in global_unmatched.most_common(200)],
+        'global_unmatched_examples':[{'text':t,'count':n} for t,n in global_unmatched.most_common(300)],
     }
     OUT.write_text(json.dumps(result,indent=2,ensure_ascii=False))
     print('CONFLICT_COVERAGE='+json.dumps(result,ensure_ascii=False))
