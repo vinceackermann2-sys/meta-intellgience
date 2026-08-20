@@ -1,0 +1,35 @@
+name: rsm-real-bench
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research25m/pretrained_banking77.py"
+      - ".github/workflows/rsm-real-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pretrained-banking77:
+    if: github.head_ref == 'research/brain25m-actions'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check --no-cache-dir torch transformers scikit-learn requests
+      - name: Run pretrained real-data benchmark
+        run: python research25m/pretrained_banking77.py --out runs/pretrained-banking77
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsm-pretrained-banking77
+          path: runs/pretrained-banking77
+          if-no-files-found: warn
+          retention-days: 30
