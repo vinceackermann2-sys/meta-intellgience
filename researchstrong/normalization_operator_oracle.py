@@ -82,28 +82,30 @@ def variants(v):
 
 def main():
     td=Path(tempfile.gettempdir())/'mab_norm_oracle';td.mkdir(exist_ok=True);qp=td/'qa.jsonl';cp=td/'conv.jsonl';base.fetch(base.BASE+'qa_dataset.jsonl',qp);base.fetch(base.BASE+'toolmem_conversation.jsonl',cp)
-    qas=list(base.load_jsonl(qp))[:N];sessions,by=base.build_session_map(cp);enc=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu');stats=defaultdict(lambda:Counter(n=0,identity=0,transformed=0,any=0));ops=defaultdict(Counter);samples=[];missing=[]
+    qas=list(base.load_jsonl(qp))[:N];sessions,by=base.build_session_map(cp);enc=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu')
+    stats=defaultdict(lambda:defaultdict(lambda:Counter(n=0,identity=0,transformed=0,any=0)));ops=defaultdict(lambda:defaultdict(Counter));samples=[];missing=[]
     for qi,qa in enumerate(qas):
         ses=base.find_session(qa,sessions,by)
         if ses is None:missing.append(qi);continue
-        eps=es.episodes(ses);schema=qa.get('target_tool_schema') or {};props=((schema.get('parameters') or {}).get('properties') or {});gold=((qa.get('tool_call') or {}).get('arguments') or {});gi=((qa.get('tool_call') or {}).get('grounding_info') or {});query=str(qa.get('query',''))
+        split='train' if qi<70 else 'validation';eps=es.episodes(ses);schema=qa.get('target_tool_schema') or {};props=((schema.get('parameters') or {}).get('properties') or {});gold=((qa.get('tool_call') or {}).get('arguments') or {});gi=((qa.get('tool_call') or {}).get('grounding_info') or {});query=str(qa.get('query',''))
         for p,g in gold.items():
-            typ=str((gi.get(p) or {}).get('type','unknown'));stats[typ]['n']+=1;d=props.get(p) or {};target=f'Current request: {query}. Target tool: {schema.get("name","")}. Target parameter: {p}. Meaning: {d.get("description","")}. Type: {d.get("type","")}'
+            typ=str((gi.get(p) or {}).get('type','unknown'));d=props.get(p) or {};target=f'Current request: {query}. Target tool: {schema.get("name","")}. Target parameter: {p}. Meaning: {d.get("description","")}. Type: {d.get("type","")}'
             raw=[]
             for rank,ep,sim in es.retrieve_episodes(enc,eps,target,TOP_EPISODES):
                 for c in af.occurrences(ep,rank,sim):raw.append((c['value'],c['kind']))
             raw.extend((v,'query_span') for v in base.spans(query))
             if isinstance(d.get('enum'),list):raw.extend((v,'schema_enum') for v in d['enum'])
-            id_hit=any(base.norm(v)==base.norm(g) for v,_ in raw);stats[typ]['identity']+=int(id_hit);transformed=[];seen=set()
+            id_hit=any(base.norm(v)==base.norm(g) for v,_ in raw);transformed=[];seen=set()
             for v,src in raw:
                 add(transformed,seen,v,'identity',src)
                 for x,op in variants(v):add(transformed,seen,x,op,src)
             hits=[h for h in transformed if base.norm(h[0])==base.norm(g)];nonid=[h for h in hits if h[1]!='identity']
-            if nonid:
-                stats[typ]['transformed']+=1
-                for _,op,_ in nonid:ops[typ][op]+=1
-            stats[typ]['any']+=int(bool(hits))
-            if typ=='inferred' and len(samples)<20:samples.append({'qa_id':qa.get('qa_id'),'parameter':p,'gold':g,'identity_hit':id_hit,'transform_hits':[{'value':v,'op':op,'source':src} for v,op,src in nonid[:8]]})
-    packed={typ:{'n':c['n'],'identity_coverage':c['identity']/max(1,c['n']),'transform_coverage':c['transformed']/max(1,c['n']),'union_coverage':c['any']/max(1,c['n']),'transform_ops':dict(ops[typ])} for typ,c in stats.items()}
-    result={'stage':'Mem2Act general normalization operator oracle coverage','operators':['case/title/acronym','country ISO/name','language code/name','CSS color name/hex','numeric precision/type','common date formats','schema enum','query spans'],'results':packed,'missing_zero_based':missing,'samples':samples,'guardrail':'QA001-100 gold is used only to score operator coverage. Operators are general transformations, not QA-specific mappings. QA101-400 gold remains sealed.'};OUT.write_text(json.dumps(result,indent=2,ensure_ascii=False));print('MEM2ACT_NORMALIZATION_ORACLE='+json.dumps(result,ensure_ascii=False),flush=True)
+            for scope in ['all',split]:
+                c=stats[scope][typ];c['n']+=1;c['identity']+=int(id_hit);c['transformed']+=int(bool(nonid));c['any']+=int(bool(hits))
+                for _,op,_ in nonid:ops[scope][typ][op]+=1
+            if typ=='inferred' and (split=='validation' or len(samples)<20):samples.append({'qa_id':qa.get('qa_id'),'split':split,'parameter':p,'gold':g,'identity_hit':id_hit,'transform_hits':[{'value':v,'op':op,'source':src} for v,op,src in nonid[:8]]})
+    packed={}
+    for scope,bytyp in stats.items():
+        packed[scope]={typ:{'n':c['n'],'identity_coverage':c['identity']/max(1,c['n']),'transform_coverage':c['transformed']/max(1,c['n']),'union_coverage':c['any']/max(1,c['n']),'transform_ops':dict(ops[scope][typ])} for typ,c in bytyp.items()}
+    result={'stage':'Mem2Act general normalization operator oracle coverage','split':'QA001-70 train/development; QA071-100 frozen validation; QA101-400 sealed','operators':['case/title/acronym','country ISO/name','language code/name','CSS color name/hex','numeric precision/type','common date formats','schema enum','query spans'],'results':packed,'missing_zero_based':missing,'samples':samples,'guardrail':'QA001-100 gold is used only to score operator coverage. Operators are general transformations, not QA-specific mappings. QA101-400 gold remains sealed.'};OUT.write_text(json.dumps(result,indent=2,ensure_ascii=False));print('MEM2ACT_NORMALIZATION_ORACLE='+json.dumps(result,ensure_ascii=False),flush=True)
 if __name__=='__main__':main()
