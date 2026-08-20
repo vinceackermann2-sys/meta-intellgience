@@ -14,12 +14,14 @@ jobs:
   inspect:
     if: startsWith(github.head_ref, 'research/real-memory-gates')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install dataset loader
+        run: python -m pip install --disable-pip-version-check --no-cache-dir datasets
       - name: Inspect official MemoryAgentBench TTL data
         run: python researchbreakthrough/mab_inspect.py
       - name: Upload inspection
