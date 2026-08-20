@@ -1,0 +1,32 @@
+name: mab-inspect
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'researchbreakthrough/mab_inspect.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: startsWith(github.head_ref, 'research/real-memory-gates')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Inspect official MemoryAgentBench TTL data
+        run: python researchbreakthrough/mab_inspect.py
+      - name: Upload inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mab-inspection
+          path: researchbreakthrough/mab_inspection.json
+          if-no-files-found: warn
+          retention-days: 30
