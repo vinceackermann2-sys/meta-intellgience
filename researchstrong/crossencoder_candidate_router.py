@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 import learned_candidate_router as lr
 import strong_banking77 as base
 
-OUT=Path('researchstrong/crossencoder_candidate_router_result.json')
+OUT=Path(__file__).with_name('crossencoder_candidate_router_result.json')
 TRAIN_END=70
 DEV_END=100
 
