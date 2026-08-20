@@ -5,7 +5,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 import strong_banking77 as base
 
-OUT=Path('researchstrong/episode_scope_oracle_result.json')
+OUT=Path(__file__).with_name('episode_scope_oracle_result.json')
 N=100
 
 
