@@ -1,0 +1,40 @@
+name: mem2act-learned-router
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'researchstrong/learned_candidate_router.py'
+      - 'researchstrong/strong_banking77.py'
+      - '.github/workflows/mem2act-learned-router.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  learned-router:
+    if: startsWith(github.head_ref, 'research/mem2act-learned-router')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU research dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --disable-pip-version-check --no-cache-dir datasets sentence-transformers scikit-learn
+      - name: Run learned candidate router
+        env:
+          TOKENIZERS_PARALLELISM: 'false'
+        run: python researchstrong/learned_candidate_router.py
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mem2act-learned-router-result
+          path: researchstrong/learned_candidate_router_result.json
+          if-no-files-found: warn
+          retention-days: 30
