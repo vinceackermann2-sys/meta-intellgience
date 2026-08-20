@@ -1,15 +1,16 @@
-name: semantic-world-model-repaired-state
+name: semantic-world-model-concept-state
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchstrong/semantic_property_repaired_oracle.py'
+      - 'researchstrong/semantic_concept_ingest_oracle.py'
+      - 'researchstrong/semantic_property_ingest_oracle.py'
       - 'researchstrong/mem2act_repaired_sessions.py'
       - '.github/workflows/semantic-world-model.yml'
 permissions:
   contents: read
 jobs:
-  repaired-property-state:
+  concept-property-state:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -21,14 +22,14 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
           python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
-      - name: Run repaired SWM-A property oracle
+      - name: Run query-independent semantic concept world-state oracle
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_property_repaired_oracle.py
+        run: python semantic_concept_ingest_oracle.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: semantic-property-repaired-result
-          path: researchstrong/semantic_property_repaired_oracle_result.json
+          name: semantic-concept-ingest-result
+          path: researchstrong/semantic_concept_ingest_oracle_result.json
           retention-days: 90
