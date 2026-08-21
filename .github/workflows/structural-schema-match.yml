@@ -1,0 +1,33 @@
+name: structural-schema-match
+on:
+  pull_request:
+    branches: [research/semantic-world-model-20260820]
+    paths:
+      - 'researchstrong/structural_schema_match_cv.py'
+      - '.github/workflows/structural-schema-match.yml'
+permissions:
+  contents: read
+jobs:
+  structural-schema-match:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn scipy python-dateutil pycountry webcolors
+      - name: Run structural bipartite schema matcher
+        working-directory: researchstrong
+        env:
+          TOKENIZERS_PARALLELISM: 'false'
+        run: python structural_schema_match_cv.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: structural-schema-match-result
+          path: researchstrong/structural_schema_match_cv_result.json
+          retention-days: 90
