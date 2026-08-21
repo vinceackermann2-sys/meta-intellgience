@@ -1,15 +1,15 @@
-name: semantic-entity-hierarchy-diagnostic
+name: semantic-role-bridge-weighted-cv
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchstrong/semantic_entity_hierarchy_diagnostic.py'
-      - 'researchstrong/semantic_entity_hierarchy_diagnostic_v2.py'
+      - 'researchstrong/semantic_role_bridge_cv.py'
+      - 'researchstrong/semantic_role_bridge_weighted_cv.py'
       - '.github/workflows/semantic-world-model.yml'
 permissions:
   contents: read
 jobs:
-  semantic-entity-hierarchy:
+  semantic-role-bridge-weighted-cv:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
@@ -21,14 +21,14 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
           python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
-      - name: Run semantic entity hierarchy diagnostic
+      - name: Run weighted semantic role bridge CV
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_entity_hierarchy_diagnostic_v2.py
+        run: python semantic_role_bridge_weighted_cv.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: semantic-entity-hierarchy-result
-          path: researchstrong/semantic_entity_hierarchy_diagnostic_result.json
+          name: semantic-role-bridge-weighted-result
+          path: researchstrong/semantic_role_bridge_weighted_cv_result.json
           retention-days: 30
