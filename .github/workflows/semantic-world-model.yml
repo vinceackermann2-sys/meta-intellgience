@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'researchstrong/semantic_entity_hierarchy_diagnostic.py'
+      - 'researchstrong/semantic_entity_hierarchy_diagnostic_v2.py'
       - '.github/workflows/semantic-world-model.yml'
 permissions:
   contents: read
@@ -24,7 +25,7 @@ jobs:
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_entity_hierarchy_diagnostic.py
+        run: python semantic_entity_hierarchy_diagnostic_v2.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
