@@ -1,0 +1,1 @@
+Current status: no breakthrough claim. Clean branch isolates semantic-role/world-model experiments from prior Gate-A workflow fan-out. First experiment compares raw semantic address similarity against learned ridge and orthogonal cross-schema role maps under 5-fold QA001-100 development CV. Hidden QA101-400 labels remain sealed.
