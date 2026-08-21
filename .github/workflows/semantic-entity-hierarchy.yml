@@ -24,7 +24,9 @@ jobs:
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_entity_hierarchy_diagnostic.py
+        run: |
+          sed -i 's/bool(fo)/len(fo) > 0/g' semantic_entity_hierarchy_diagnostic.py
+          python semantic_entity_hierarchy_diagnostic.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
