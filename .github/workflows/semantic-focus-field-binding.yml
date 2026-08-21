@@ -31,3 +31,4 @@ jobs:
           name: semantic-focus-field-binding-result
           path: researchstrong/semantic_focus_field_binding_cv_result.json
           retention-days: 90
+# active semantic gate only
