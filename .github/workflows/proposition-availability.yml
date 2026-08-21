@@ -1,0 +1,33 @@
+name: proposition-availability-oracle
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'research_semantic/proposition_availability_oracle.py'
+      - '.github/workflows/proposition-availability.yml'
+permissions:
+  contents: read
+jobs:
+  proposition-availability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers pycountry webcolors
+      - name: Run raw proposition availability oracle
+        working-directory: research_semantic
+        env:
+          TOKENIZERS_PARALLELISM: 'false'
+        run: python proposition_availability_oracle.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proposition-availability-oracle-result
+          path: research_semantic/proposition_availability_oracle_result.json
+          retention-days: 90
