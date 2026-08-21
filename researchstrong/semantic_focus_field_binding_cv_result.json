@@ -1,0 +1,3786 @@
+{
+  "stage": "SWM-C focus-conditioned local field binding",
+  "split": "QA001-100 development-only 5-fold QA CV; QA101-400 gold remains sealed",
+  "architecture": "query-independent semantic world ingestion -> query-time discourse focus ranking -> restrict candidates to top-k focus episodes -> value-masked local field-role pairwise binding -> exact payload dereference after selection",
+  "results": {
+    "top1_focus": {
+      "summary": {
+        "learned": {
+          "explicit": {
+            "candidate_coverage": 0.7529411764705882,
+            "top1_all": 0.17051353874883285,
+            "top3_all": 0.27755368814192344,
+            "top5_all": 0.3444164332399627
+          },
+          "inferred": {
+            "candidate_coverage": 0.31648351648351647,
+            "top1_all": 0.05,
+            "top3_all": 0.10357142857142856,
+            "top5_all": 0.11895604395604395
+          }
+        },
+        "raw": {
+          "explicit": {
+            "candidate_coverage": 0.7529411764705882,
+            "top1_all": 0.1785060690943044,
+            "top3_all": 0.2980298786181139,
+            "top5_all": 0.37312791783380017
+          },
+          "inferred": {
+            "candidate_coverage": 0.31648351648351647,
+            "top1_all": 0.09038461538461538,
+            "top3_all": 0.11538461538461538,
+            "top5_all": 0.11538461538461538
+          }
+        }
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.1,
+            0.0
+          ],
+          "pair_rows": 12732,
+          "train_groups": 67,
+          "learned": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.7647058823529411,
+              "top1_all": 0.11764705882352941,
+              "top3_all": 0.29411764705882354,
+              "top5_all": 0.4117647058823529,
+              "top1_given_covered": 0.15384615384615385
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.125,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.25
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.7647058823529411,
+              "top1_all": 0.29411764705882354,
+              "top3_all": 0.29411764705882354,
+              "top5_all": 0.35294117647058826,
+              "top1_given_covered": 0.38461538461538464
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_013",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -1.101162559662091,
+                  "episode": 0,
+                  "value": "JO"
+                },
+                {
+                  "score": -1.403969648332203,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -1.559869668387253,
+                  "episode": 0,
+                  "value": "AAPL"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_017",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -1.1722859833025856,
+                  "episode": 0,
+                  "value": "MS"
+                },
+                {
+                  "score": -1.6944928777387638,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -1.830639661341726,
+                  "episode": 0,
+                  "value": "AAPL"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "amount",
+              "gold": 500,
+              "top": [
+                {
+                  "score": 0.7467951696543088,
+                  "episode": 1,
+                  "value": "GR"
+                },
+                {
+                  "score": -0.06646768257250946,
+                  "episode": 1,
+                  "value": "-"
+                },
+                {
+                  "score": -0.42372313779517556,
+                  "episode": 1,
+                  "value": "BG"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "campaignId",
+              "gold": "EcoCharge",
+              "top": [
+                {
+                  "score": -0.9492300289717013,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": -1.0214997933298944,
+                  "episode": 1,
+                  "value": "MS"
+                },
+                {
+                  "score": -1.0214997933298944,
+                  "episode": 1,
+                  "value": "GR"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_022",
+              "parameter": "language",
+              "gold": "English",
+              "top": [
+                {
+                  "score": -1.6373907279022866,
+                  "episode": 0,
+                  "value": "en"
+                },
+                {
+                  "score": -1.6821834673348484,
+                  "episode": 0,
+                  "value": "es"
+                },
+                {
+                  "score": -1.7460358694823181,
+                  "episode": 0,
+                  "value": "en"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_043",
+              "parameter": "zpid",
+              "gold": "48749425",
+              "top": [
+                {
+                  "score": -0.7655637044159729,
+                  "episode": 2,
+                  "value": "US"
+                },
+                {
+                  "score": -0.8089339857285345,
+                  "episode": 2,
+                  "value": "US"
+                },
+                {
+                  "score": -1.3770710663069834,
+                  "episode": 2,
+                  "value": "US"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 1,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 14400,
+          "train_groups": 73,
+          "learned": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.6,
+              "top1_all": 0.06666666666666667,
+              "top3_all": 0.06666666666666667,
+              "top5_all": 0.13333333333333333,
+              "top1_given_covered": 0.1111111111111111
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.15384615384615385,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.07692307692307693,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.6,
+              "top1_all": 0.13333333333333333,
+              "top3_all": 0.26666666666666666,
+              "top5_all": 0.3333333333333333,
+              "top1_given_covered": 0.2222222222222222
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.15384615384615385,
+              "top1_all": 0.07692307692307693,
+              "top3_all": 0.07692307692307693,
+              "top5_all": 0.07692307692307693,
+              "top1_given_covered": 0.5
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_014",
+              "parameter": "shortcode",
+              "gold": "B8J9kHFSRm",
+              "top": [
+                {
+                  "score": -0.5023779235729962,
+                  "episode": 4,
+                  "value": "John Doe"
+                },
+                {
+                  "score": -0.5741242999296265,
+                  "episode": 4,
+                  "value": "john.doe@example.com"
+                },
+                {
+                  "score": -0.5791505704919955,
+                  "episode": 4,
+                  "value": 54321
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_028",
+              "parameter": "text",
+              "gold": "Cybernetic Rhapsody",
+              "top": [
+                {
+                  "score": 1.2047696034394377,
+                  "episode": 1,
+                  "value": "AI"
+                },
+                {
+                  "score": 0.5009545305218863,
+                  "episode": 1,
+                  "value": 2025
+                },
+                {
+                  "score": 0.34498598393258906,
+                  "episode": 1,
+                  "value": 2025
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_056",
+              "parameter": "region",
+              "gold": "US",
+              "top": [
+                {
+                  "score": -1.192751921903541,
+                  "episode": 4,
+                  "value": "Eren Yeager"
+                },
+                {
+                  "score": -1.2997148779345151,
+                  "episode": 4,
+                  "value": "Eren Yeager is the main protagonist of Attack on Titan. After witnessing the destruction of his hometown and the death of his mother at the hands of a Titan, he vows to eradicate all Titans. His journey evolves from vengeance to a deeper understanding of freedom, war, and the cyclical nature of hatred."
+                },
+                {
+                  "score": -1.3318367562249782,
+                  "episode": 4,
+                  "value": "Eren Yeager"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_067",
+              "parameter": "sign",
+              "gold": "leo",
+              "top": [
+                {
+                  "score": 1.4506963860620319,
+                  "episode": 0,
+                  "value": "ID"
+                },
+                {
+                  "score": 1.279497113547719,
+                  "episode": 0,
+                  "value": "P002"
+                },
+                {
+                  "score": 1.279497113547719,
+                  "episode": 0,
+                  "value": "P001"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_071",
+              "parameter": "id",
+              "gold": "0x1234567890abcdef",
+              "top": [
+                {
+                  "score": -0.1295312784542355,
+                  "episode": 1,
+                  "value": "XYZ"
+                },
+                {
+                  "score": -0.16388011077789177,
+                  "episode": 1,
+                  "value": "NFT"
+                },
+                {
+                  "score": -0.17277429247335174,
+                  "episode": 1,
+                  "value": "XYZ"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_095",
+              "parameter": "library",
+              "gold": "Paper.js",
+              "top": [
+                {
+                  "score": -2.5708679406948303,
+                  "episode": 6,
+                  "value": "HTML5"
+                },
+                {
+                  "score": -2.5708679406948303,
+                  "episode": 6,
+                  "value": "API"
+                },
+                {
+                  "score": -3.232309211544054,
+                  "episode": 6,
+                  "value": "THREE."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 2,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 12720,
+          "train_groups": 65,
+          "learned": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 0.9,
+              "top1_all": 0.2,
+              "top3_all": 0.4,
+              "top5_all": 0.55,
+              "top1_given_covered": 0.2222222222222222
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.25,
+              "top3_all": 0.25,
+              "top5_all": 0.25,
+              "top1_given_covered": 1.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 0.9,
+              "top1_all": 0.1,
+              "top3_all": 0.35,
+              "top5_all": 0.6,
+              "top1_given_covered": 0.1111111111111111
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.25,
+              "top3_all": 0.25,
+              "top5_all": 0.25,
+              "top1_given_covered": 1.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_003",
+              "parameter": "keyword",
+              "gold": "trendsetter",
+              "top": [
+                {
+                  "score": -0.6023058610102123,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -1.1646308484924173,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -1.1690865048192316,
+                  "episode": 2,
+                  "value": "Fashion & lifestyle | 1M+ followers"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_006",
+              "parameter": "page",
+              "gold": 1,
+              "top": [
+                {
+                  "score": 1.2465933183796607,
+                  "episode": 1,
+                  "value": 48932
+                },
+                {
+                  "score": 1.2192833497356614,
+                  "episode": 1,
+                  "value": 1
+                },
+                {
+                  "score": 0.3427065953942145,
+                  "episode": 1,
+                  "value": "mixed"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_012",
+              "parameter": "phone",
+              "gold": "+14155552671",
+              "top": [
+                {
+                  "score": -5.59847964949334,
+                  "episode": 4,
+                  "value": "AT"
+                },
+                {
+                  "score": -5.845579252456393,
+                  "episode": 4,
+                  "value": "CA"
+                },
+                {
+                  "score": -6.254176705505861,
+                  "episode": 4,
+                  "value": "United States"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "latitude",
+              "gold": "34.0522",
+              "top": [
+                {
+                  "score": -4.525241608677107,
+                  "episode": 6,
+                  "value": "API"
+                },
+                {
+                  "score": -5.647779397230919,
+                  "episode": 6,
+                  "value": "10"
+                },
+                {
+                  "score": -5.647779397230919,
+                  "episode": 6,
+                  "value": "9"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "longitude",
+              "gold": "-118.2437",
+              "top": [
+                {
+                  "score": -4.578033834429228,
+                  "episode": 6,
+                  "value": "API"
+                },
+                {
+                  "score": -5.776701220579635,
+                  "episode": 6,
+                  "value": "5"
+                },
+                {
+                  "score": -5.786454466923401,
+                  "episode": 6,
+                  "value": "10"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_041",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -3.3193254441265934,
+                  "episode": 5,
+                  "value": "last week"
+                },
+                {
+                  "score": -3.3197604696346406,
+                  "episode": 5,
+                  "value": "BTC"
+                },
+                {
+                  "score": -3.3749254184386395,
+                  "episode": 5,
+                  "value": "commodities"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 3,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 13644,
+          "train_groups": 68,
+          "learned": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.42857142857142855,
+              "top1_all": 0.0,
+              "top3_all": 0.14285714285714285,
+              "top5_all": 0.14285714285714285,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 0.6666666666666666,
+              "top1_all": 0.19047619047619047,
+              "top3_all": 0.23809523809523808,
+              "top5_all": 0.23809523809523808,
+              "top1_given_covered": 0.2857142857142857
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.42857142857142855,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 0.6666666666666666,
+              "top1_all": 0.14285714285714285,
+              "top3_all": 0.19047619047619047,
+              "top5_all": 0.19047619047619047,
+              "top1_given_covered": 0.21428571428571427
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_008",
+              "parameter": "symbol",
+              "gold": "VFIAX",
+              "top": [
+                {
+                  "score": -3.342754854535804,
+                  "episode": 6,
+                  "value": "1 to 5"
+                },
+                {
+                  "score": -3.384060640802129,
+                  "episode": 6,
+                  "value": "VFIAX"
+                },
+                {
+                  "score": -3.384551806506507,
+                  "episode": 6,
+                  "value": 4.5
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_010",
+              "parameter": "keyword",
+              "gold": "market capitalization",
+              "top": [
+                {
+                  "score": -0.457604032831084,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -0.45969425803529274,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -0.6640341424689775,
+                  "episode": 0,
+                  "value": "AAPL"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_015",
+              "parameter": "pollutant",
+              "gold": "nitrous oxide",
+              "top": [
+                {
+                  "score": -1.6567116853547108,
+                  "episode": 2,
+                  "value": "U.S"
+                },
+                {
+                  "score": -1.778247145330123,
+                  "episode": 2,
+                  "value": "UV"
+                },
+                {
+                  "score": -1.778247145330123,
+                  "episode": 2,
+                  "value": "B12"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_019",
+              "parameter": "sign",
+              "gold": "aquarius",
+              "top": [
+                {
+                  "score": -0.36430285682033237,
+                  "episode": 2,
+                  "value": "AI"
+                },
+                {
+                  "score": -0.37781667456468604,
+                  "episode": 2,
+                  "value": "LAROI"
+                },
+                {
+                  "score": -0.46355328396202367,
+                  "episode": 2,
+                  "value": "next_page_cursor"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_021",
+              "parameter": "keyword",
+              "gold": "Halloween Festival",
+              "top": [
+                {
+                  "score": 0.8240283784575686,
+                  "episode": 0,
+                  "value": "events"
+                },
+                {
+                  "score": 0.8062759539391579,
+                  "episode": 0,
+                  "value": "The Endwalker Expansion Celebration Event is one of the most anticipated annual gatherings in the FFXIV community. It commemorates the release of the Endwalker expansion, featuring exclusive story content that ties into the game's overarching narrative, limited-time mounts and minions, and a special in-game concert featuring the game's iconic soundtrack. Many players organize community watch parties, cosplay events, and charity streams during this time, making it a cornerstone of FFXIV's social calendar."
+                },
+                {
+                  "score": 0.5095458976209634,
+                  "episode": 0,
+                  "value": "Final Fantasy XIV"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_036",
+              "parameter": "keyword",
+              "gold": "forex markets",
+              "top": [
+                {
+                  "score": -0.3698689121085862,
+                  "episode": 2,
+                  "value": 0.871
+                },
+                {
+                  "score": -0.3807815068084003,
+                  "episode": 2,
+                  "value": 435.5
+                },
+                {
+                  "score": -0.3947451358827355,
+                  "episode": 2,
+                  "value": "USD"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 4,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 12876,
+          "train_groups": 68,
+          "learned": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.8333333333333334,
+              "top1_all": 0.2777777777777778,
+              "top3_all": 0.3888888888888889,
+              "top5_all": 0.3888888888888889,
+              "top1_given_covered": 0.3333333333333333
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.8333333333333334,
+              "top1_all": 0.2222222222222222,
+              "top3_all": 0.3888888888888889,
+              "top5_all": 0.3888888888888889,
+              "top1_given_covered": 0.26666666666666666
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_002",
+              "parameter": "sort_column",
+              "gold": "ERA",
+              "top": [
+                {
+                  "score": 1.0838486497719624,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 0.9939397933017762,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": -0.0726996243495602,
+                  "episode": 2,
+                  "value": "2024"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_002",
+              "parameter": "sports_code",
+              "gold": "MLB",
+              "top": [
+                {
+                  "score": -0.17273200382132137,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": -0.38384153477397387,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": -0.7853319801645575,
+                  "episode": 2,
+                  "value": "MLB"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_007",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -1.2968621773824214,
+                  "episode": 3,
+                  "value": "NASDAQ"
+                },
+                {
+                  "score": -1.4170712475057774,
+                  "episode": 3,
+                  "value": "UTC"
+                },
+                {
+                  "score": -1.4170712475057774,
+                  "episode": 3,
+                  "value": "AM"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_009",
+              "parameter": "slug",
+              "gold": "Golden_Rush",
+              "top": [
+                {
+                  "score": -0.8710698206454575,
+                  "episode": 3,
+                  "value": "ZXY123"
+                },
+                {
+                  "score": -0.9176412624417869,
+                  "episode": 3,
+                  "value": "ZXY123"
+                },
+                {
+                  "score": -1.041327137441377,
+                  "episode": 3,
+                  "value": "ID"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_035",
+              "parameter": "url",
+              "gold": "http://example.com/my-image.jpg",
+              "top": [
+                {
+                  "score": -1.9145449411818787,
+                  "episode": 5,
+                  "value": "API"
+                },
+                {
+                  "score": -1.995551934508492,
+                  "episode": 5,
+                  "value": "API"
+                },
+                {
+                  "score": -2.012359253670593,
+                  "episode": 5,
+                  "value": "API"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_038",
+              "parameter": "quantity",
+              "gold": 5,
+              "top": [
+                {
+                  "score": -0.518262200948366,
+                  "episode": 3,
+                  "value": 66
+                },
+                {
+                  "score": -0.518262200948366,
+                  "episode": 3,
+                  "value": 29
+                },
+                {
+                  "score": -0.518262200948366,
+                  "episode": 3,
+                  "value": 661
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "top2_focus": {
+      "summary": {
+        "learned": {
+          "explicit": {
+            "candidate_coverage": 0.8345658263305322,
+            "top1_all": 0.1149579831932773,
+            "top3_all": 0.18199813258636788,
+            "top5_all": 0.2175536881419234
+          },
+          "inferred": {
+            "candidate_coverage": 0.38763736263736265,
+            "top1_all": 0.0,
+            "top3_all": 0.05357142857142857,
+            "top5_all": 0.05357142857142857
+          }
+        },
+        "raw": {
+          "explicit": {
+            "candidate_coverage": 0.8345658263305322,
+            "top1_all": 0.1880298786181139,
+            "top3_all": 0.3370774976657329,
+            "top5_all": 0.4021755368814192
+          },
+          "inferred": {
+            "candidate_coverage": 0.38763736263736265,
+            "top1_all": 0.09038461538461538,
+            "top3_all": 0.13076923076923078,
+            "top5_all": 0.13076923076923078
+          }
+        }
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.1,
+            0.0
+          ],
+          "pair_rows": 13872,
+          "train_groups": 74,
+          "learned": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.8823529411764706,
+              "top1_all": 0.11764705882352941,
+              "top3_all": 0.29411764705882354,
+              "top5_all": 0.29411764705882354,
+              "top1_given_covered": 0.13333333333333333
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.125,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.25
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.8823529411764706,
+              "top1_all": 0.29411764705882354,
+              "top3_all": 0.29411764705882354,
+              "top5_all": 0.35294117647058826,
+              "top1_given_covered": 0.3333333333333333
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_013",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -1.4377906020213378,
+                  "episode": 0,
+                  "value": "JO"
+                },
+                {
+                  "score": -2.096721312123006,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -2.1878280139673265,
+                  "episode": 0,
+                  "value": "AAPL"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_017",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -1.559244595005297,
+                  "episode": 0,
+                  "value": "MS"
+                },
+                {
+                  "score": -1.9285680900418516,
+                  "episode": 4,
+                  "value": "Human character with strength 8 and intelligence 7 performing a dynamic victory dance."
+                },
+                {
+                  "score": -1.9480804789154478,
+                  "episode": 4,
+                  "value": "success"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "amount",
+              "gold": 500,
+              "top": [
+                {
+                  "score": 0.692146429238912,
+                  "episode": 1,
+                  "value": "GR"
+                },
+                {
+                  "score": 0.08944065063861809,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": 0.039670460571092275,
+                  "episode": 1,
+                  "value": "GR"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "campaignId",
+              "gold": "EcoCharge",
+              "top": [
+                {
+                  "score": -0.4938021342023391,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": -0.5700112843320055,
+                  "episode": 1,
+                  "value": "MS"
+                },
+                {
+                  "score": -0.5700112843320055,
+                  "episode": 1,
+                  "value": "GR"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_022",
+              "parameter": "language",
+              "gold": "English",
+              "top": [
+                {
+                  "score": -2.6622782730484396,
+                  "episode": 0,
+                  "value": "es"
+                },
+                {
+                  "score": -2.705800548744963,
+                  "episode": 0,
+                  "value": "en"
+                },
+                {
+                  "score": -2.7120789415428073,
+                  "episode": 0,
+                  "value": "es"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_043",
+              "parameter": "zpid",
+              "gold": "48749425",
+              "top": [
+                {
+                  "score": 0.25478124674828073,
+                  "episode": 2,
+                  "value": "US"
+                },
+                {
+                  "score": 0.13402905258629128,
+                  "episode": 2,
+                  "value": "US"
+                },
+                {
+                  "score": -0.4805631196733921,
+                  "episode": 4,
+                  "value": "TG"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 1,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 15840,
+          "train_groups": 78,
+          "learned": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.6,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.06666666666666667,
+              "top1_given_covered": 0.0
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.38461538461538464,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.6,
+              "top1_all": 0.13333333333333333,
+              "top3_all": 0.26666666666666666,
+              "top5_all": 0.3333333333333333,
+              "top1_given_covered": 0.2222222222222222
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.38461538461538464,
+              "top1_all": 0.07692307692307693,
+              "top3_all": 0.15384615384615385,
+              "top5_all": 0.15384615384615385,
+              "top1_given_covered": 0.2
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_014",
+              "parameter": "shortcode",
+              "gold": "B8J9kHFSRm",
+              "top": [
+                {
+                  "score": 2.7150821355870587,
+                  "episode": 4,
+                  "value": "John Doe"
+                },
+                {
+                  "score": 2.6726691405535092,
+                  "episode": 4,
+                  "value": 54321
+                },
+                {
+                  "score": 2.642247717809564,
+                  "episode": 4,
+                  "value": "ID"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_026",
+              "parameter": "address",
+              "gold": "0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE",
+              "top": [
+                {
+                  "score": 1.7381899362087332,
+                  "episode": 6,
+                  "value": "NFL"
+                },
+                {
+                  "score": 1.6439276883056355,
+                  "episode": 6,
+                  "value": "ID"
+                },
+                {
+                  "score": 1.6220118364712506,
+                  "episode": 6,
+                  "value": "NFL Playoffs"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_028",
+              "parameter": "text",
+              "gold": "Cybernetic Rhapsody",
+              "top": [
+                {
+                  "score": 1.9366627238929977,
+                  "episode": 1,
+                  "value": "AI"
+                },
+                {
+                  "score": 1.193605760988277,
+                  "episode": 3,
+                  "value": "ID"
+                },
+                {
+                  "score": 1.0482918840115008,
+                  "episode": 1,
+                  "value": 2025
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_056",
+              "parameter": "region",
+              "gold": "US",
+              "top": [
+                {
+                  "score": 2.66852118445787,
+                  "episode": 4,
+                  "value": "Eren Yeager"
+                },
+                {
+                  "score": 2.595275421458981,
+                  "episode": 4,
+                  "value": "Eren Yeager is the main protagonist of Attack on Titan. After witnessing the destruction of his hometown and the death of his mother at the hands of a Titan, he vows to eradicate all Titans. His journey evolves from vengeance to a deeper understanding of freedom, war, and the cyclical nature of hatred."
+                },
+                {
+                  "score": 2.558498261425305,
+                  "episode": 4,
+                  "value": "Eren Yeager"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_067",
+              "parameter": "sign",
+              "gold": "leo",
+              "top": [
+                {
+                  "score": 1.7051566181496978,
+                  "episode": 0,
+                  "value": "ID"
+                },
+                {
+                  "score": 1.6016865788645518,
+                  "episode": 0,
+                  "value": "ABC123"
+                },
+                {
+                  "score": 1.6016865788645518,
+                  "episode": 0,
+                  "value": "P002"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_071",
+              "parameter": "id",
+              "gold": "0x1234567890abcdef",
+              "top": [
+                {
+                  "score": 1.181989094237197,
+                  "episode": 1,
+                  "value": "XYZ"
+                },
+                {
+                  "score": 1.142662237572278,
+                  "episode": 1,
+                  "value": "NFT"
+                },
+                {
+                  "score": 1.124733753960105,
+                  "episode": 1,
+                  "value": "APR"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 2,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 13968,
+          "train_groups": 71,
+          "learned": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.1,
+              "top3_all": 0.1,
+              "top5_all": 0.1,
+              "top1_given_covered": 0.1
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.1,
+              "top3_all": 0.45,
+              "top5_all": 0.65,
+              "top1_given_covered": 0.1
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.25,
+              "top3_all": 0.25,
+              "top5_all": 0.25,
+              "top1_given_covered": 1.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_003",
+              "parameter": "keyword",
+              "gold": "trendsetter",
+              "top": [
+                {
+                  "score": -0.05751539972891173,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -0.45558752934412805,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -0.46089702738399385,
+                  "episode": 2,
+                  "value": "Fashion & lifestyle | 1M+ followers"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_006",
+              "parameter": "page",
+              "gold": 1,
+              "top": [
+                {
+                  "score": 0.17323444623053064,
+                  "episode": 1,
+                  "value": "H4G8fb9A3eKt2LpO"
+                },
+                {
+                  "score": 0.13544956063834412,
+                  "episode": 1,
+                  "value": "mixed"
+                },
+                {
+                  "score": 0.08186852077600104,
+                  "episode": 1,
+                  "value": true
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_012",
+              "parameter": "phone",
+              "gold": "+14155552671",
+              "top": [
+                {
+                  "score": -2.104360853574539,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -2.3734342308808802,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -3.262505841067415,
+                  "episode": 2,
+                  "value": "UConn"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "latitude",
+              "gold": "34.0522",
+              "top": [
+                {
+                  "score": -0.504976196467972,
+                  "episode": 3,
+                  "value": false
+                },
+                {
+                  "score": -0.5216418716821472,
+                  "episode": 3,
+                  "value": "Amelia"
+                },
+                {
+                  "score": -0.530838936229419,
+                  "episode": 3,
+                  "value": 15500.0
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "longitude",
+              "gold": "-118.2437",
+              "top": [
+                {
+                  "score": -0.5280772154637767,
+                  "episode": 3,
+                  "value": false
+                },
+                {
+                  "score": -0.5318604055655871,
+                  "episode": 3,
+                  "value": "Amelia"
+                },
+                {
+                  "score": -0.570971493380271,
+                  "episode": 3,
+                  "value": 15500.0
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_032",
+              "parameter": "domain",
+              "gold": "newsabouttech.com",
+              "top": [
+                {
+                  "score": -0.8976699079843315,
+                  "episode": 5,
+                  "value": "COVID-19"
+                },
+                {
+                  "score": -0.965827680292386,
+                  "episode": 5,
+                  "value": "Jamaica gained independence from the United Kingdom on August 6, 1962, becoming a sovereign nation within the Commonwealth."
+                },
+                {
+                  "score": -1.0074995103537985,
+                  "episode": 5,
+                  "value": 3120
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 3,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 13968,
+          "train_groups": 70,
+          "learned": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.42857142857142855,
+              "top1_all": 0.0,
+              "top3_all": 0.14285714285714285,
+              "top5_all": 0.14285714285714285,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 0.8571428571428571,
+              "top1_all": 0.19047619047619047,
+              "top3_all": 0.23809523809523808,
+              "top5_all": 0.23809523809523808,
+              "top1_given_covered": 0.2222222222222222
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.42857142857142855,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 0.8571428571428571,
+              "top1_all": 0.19047619047619047,
+              "top3_all": 0.2857142857142857,
+              "top5_all": 0.2857142857142857,
+              "top1_given_covered": 0.2222222222222222
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_005",
+              "parameter": "url",
+              "gold": "https://www.facebook.com/video/example",
+              "top": [
+                {
+                  "score": -1.3951903867777102,
+                  "episode": 7,
+                  "value": "Media"
+                },
+                {
+                  "score": -1.3972120686766885,
+                  "episode": 7,
+                  "value": "/workspace/Media"
+                },
+                {
+                  "score": -1.4386255354502717,
+                  "episode": 7,
+                  "value": "success"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_008",
+              "parameter": "symbol",
+              "gold": "VFIAX",
+              "top": [
+                {
+                  "score": -2.0562322634446417,
+                  "episode": 6,
+                  "value": "1 to 5"
+                },
+                {
+                  "score": -2.0967036846609957,
+                  "episode": 6,
+                  "value": 4.5
+                },
+                {
+                  "score": -2.115754099905285,
+                  "episode": 6,
+                  "value": "VFIAX"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_010",
+              "parameter": "keyword",
+              "gold": "market capitalization",
+              "top": [
+                {
+                  "score": -1.1917285519398393,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -1.2079906319517713,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -1.4284642850100744,
+                  "episode": 0,
+                  "value": "AAPL"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_015",
+              "parameter": "pollutant",
+              "gold": "nitrous oxide",
+              "top": [
+                {
+                  "score": -1.596217461632779,
+                  "episode": 2,
+                  "value": "U.S"
+                },
+                {
+                  "score": -1.8365095547795425,
+                  "episode": 2,
+                  "value": "B12"
+                },
+                {
+                  "score": -1.8365095547795425,
+                  "episode": 2,
+                  "value": "UV"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_016",
+              "parameter": "symbol",
+              "gold": "TSLA",
+              "top": [
+                {
+                  "score": -0.3893479647820774,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -0.3971081139213118,
+                  "episode": 2,
+                  "value": 1
+                },
+                {
+                  "score": -0.6633486743788757,
+                  "episode": 2,
+                  "value": "Q1"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_019",
+              "parameter": "sign",
+              "gold": "aquarius",
+              "top": [
+                {
+                  "score": -0.43597337976564887,
+                  "episode": 2,
+                  "value": "AI"
+                },
+                {
+                  "score": -0.5145486085111244,
+                  "episode": 2,
+                  "value": "LAROI"
+                },
+                {
+                  "score": -0.582697864191037,
+                  "episode": 2,
+                  "value": "next_page_cursor"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 4,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 14016,
+          "train_groups": 73,
+          "learned": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.8333333333333334,
+              "top1_all": 0.16666666666666666,
+              "top3_all": 0.2777777777777778,
+              "top5_all": 0.3888888888888889,
+              "top1_given_covered": 0.2
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.375,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.8333333333333334,
+              "top1_all": 0.2222222222222222,
+              "top3_all": 0.3888888888888889,
+              "top5_all": 0.3888888888888889,
+              "top1_given_covered": 0.26666666666666666
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.375,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_002",
+              "parameter": "sort_column",
+              "gold": "ERA",
+              "top": [
+                {
+                  "score": 3.3182335889907213,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 3.188347131059799,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 1.9935065784964123,
+                  "episode": 2,
+                  "value": "PM\n\nYou"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_002",
+              "parameter": "sports_code",
+              "gold": "MLB",
+              "top": [
+                {
+                  "score": 2.203953369650997,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 1.941088140485459,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 1.8646654418437836,
+                  "episode": 2,
+                  "value": "MLB"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_007",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": 0.9781513155200301,
+                  "episode": 3,
+                  "value": "NASDAQ"
+                },
+                {
+                  "score": 0.9716599421358607,
+                  "episode": 3,
+                  "value": "UTC"
+                },
+                {
+                  "score": 0.9716599421358607,
+                  "episode": 3,
+                  "value": "AM"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_009",
+              "parameter": "slug",
+              "gold": "Golden_Rush",
+              "top": [
+                {
+                  "score": 2.116004255963613,
+                  "episode": 3,
+                  "value": "ZXY123"
+                },
+                {
+                  "score": 2.026656520909623,
+                  "episode": 3,
+                  "value": "ZXY123"
+                },
+                {
+                  "score": 1.9003555924060116,
+                  "episode": 3,
+                  "value": "ID"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_035",
+              "parameter": "url",
+              "gold": "http://example.com/my-image.jpg",
+              "top": [
+                {
+                  "score": 1.9771233350847273,
+                  "episode": 5,
+                  "value": "URL"
+                },
+                {
+                  "score": 1.889583757492346,
+                  "episode": 5,
+                  "value": "API"
+                },
+                {
+                  "score": 1.8609403063161385,
+                  "episode": 5,
+                  "value": "API"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_038",
+              "parameter": "quantity",
+              "gold": 5,
+              "top": [
+                {
+                  "score": 2.0186633318584777,
+                  "episode": 3,
+                  "value": "FFE066"
+                },
+                {
+                  "score": 2.0186633318584777,
+                  "episode": 3,
+                  "value": "A29BFE"
+                },
+                {
+                  "score": 2.0186633318584777,
+                  "episode": 3,
+                  "value": "FF6F61"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "top3_focus": {
+      "summary": {
+        "learned": {
+          "explicit": {
+            "candidate_coverage": 0.8891690009337069,
+            "top1_all": 0.10785247432306255,
+            "top3_all": 0.1753501400560224,
+            "top5_all": 0.19868347338935574
+          },
+          "inferred": {
+            "candidate_coverage": 0.41620879120879123,
+            "top1_all": 0.0,
+            "top3_all": 0.025,
+            "top5_all": 0.05357142857142857
+          }
+        },
+        "raw": {
+          "explicit": {
+            "candidate_coverage": 0.8891690009337069,
+            "top1_all": 0.1953314659197012,
+            "top3_all": 0.3443790849673202,
+            "top5_all": 0.3977124183006536
+          },
+          "inferred": {
+            "candidate_coverage": 0.41620879120879123,
+            "top1_all": 0.09038461538461538,
+            "top3_all": 0.13076923076923078,
+            "top5_all": 0.13076923076923078
+          }
+        }
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.1,
+            0.0
+          ],
+          "pair_rows": 14928,
+          "train_groups": 80,
+          "learned": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.8823529411764706,
+              "top1_all": 0.23529411764705882,
+              "top3_all": 0.35294117647058826,
+              "top5_all": 0.35294117647058826,
+              "top1_given_covered": 0.26666666666666666
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.125,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.25
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.8823529411764706,
+              "top1_all": 0.29411764705882354,
+              "top3_all": 0.29411764705882354,
+              "top5_all": 0.29411764705882354,
+              "top1_given_covered": 0.3333333333333333
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_013",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -0.04024618845063288,
+                  "episode": 0,
+                  "value": "JO"
+                },
+                {
+                  "score": -0.6001569235882491,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -0.7547092729801501,
+                  "episode": 3,
+                  "value": "CHATFS-REQ"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_017",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -0.0008287025972875117,
+                  "episode": 0,
+                  "value": "MS"
+                },
+                {
+                  "score": -0.6381103100307384,
+                  "episode": 4,
+                  "value": "Human character with strength 8 and intelligence 7 performing a dynamic victory dance."
+                },
+                {
+                  "score": -0.6571646840148095,
+                  "episode": 4,
+                  "value": "success"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "amount",
+              "gold": 500,
+              "top": [
+                {
+                  "score": 2.051544757602478,
+                  "episode": 1,
+                  "value": "GR"
+                },
+                {
+                  "score": 1.5009826839717242,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": 1.4523807510690734,
+                  "episode": 1,
+                  "value": "GR"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "campaignId",
+              "gold": "EcoCharge",
+              "top": [
+                {
+                  "score": 0.950762776563918,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": 0.8763424861020005,
+                  "episode": 1,
+                  "value": "GR"
+                },
+                {
+                  "score": 0.8763424861020005,
+                  "episode": 1,
+                  "value": "MS"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_022",
+              "parameter": "language",
+              "gold": "English",
+              "top": [
+                {
+                  "score": -1.0281075208891246,
+                  "episode": 0,
+                  "value": "en"
+                },
+                {
+                  "score": -1.0861979448276815,
+                  "episode": 0,
+                  "value": "es"
+                },
+                {
+                  "score": -1.158637033699222,
+                  "episode": 0,
+                  "value": "en"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_043",
+              "parameter": "zpid",
+              "gold": "48749425",
+              "top": [
+                {
+                  "score": 1.2005975364113401,
+                  "episode": 3,
+                  "value": "POST."
+                },
+                {
+                  "score": 1.2005975364113401,
+                  "episode": 3,
+                  "value": "POST"
+                },
+                {
+                  "score": 1.0655259216721902,
+                  "episode": 2,
+                  "value": "US"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 1,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 16512,
+          "train_groups": 84,
+          "learned": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.6666666666666666,
+              "top1_all": 0.0,
+              "top3_all": 0.06666666666666667,
+              "top5_all": 0.13333333333333333,
+              "top1_given_covered": 0.0
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.38461538461538464,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.6666666666666666,
+              "top1_all": 0.06666666666666667,
+              "top3_all": 0.2,
+              "top5_all": 0.26666666666666666,
+              "top1_given_covered": 0.1
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.38461538461538464,
+              "top1_all": 0.07692307692307693,
+              "top3_all": 0.15384615384615385,
+              "top5_all": 0.15384615384615385,
+              "top1_given_covered": 0.2
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_014",
+              "parameter": "shortcode",
+              "gold": "B8J9kHFSRm",
+              "top": [
+                {
+                  "score": 1.492293687078262,
+                  "episode": 1,
+                  "value": "HLTV."
+                },
+                {
+                  "score": 1.4782883635368895,
+                  "episode": 4,
+                  "value": "ID"
+                },
+                {
+                  "score": 1.4607884915294984,
+                  "episode": 4,
+                  "value": "John Doe"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_025",
+              "parameter": "destination",
+              "gold": "San Francisco",
+              "top": [
+                {
+                  "score": 1.117528680980149,
+                  "episode": 1,
+                  "value": "CA"
+                },
+                {
+                  "score": 0.9242179197379841,
+                  "episode": 1,
+                  "value": "CA"
+                },
+                {
+                  "score": 0.7055149611100995,
+                  "episode": 1,
+                  "value": "CA"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_026",
+              "parameter": "address",
+              "gold": "0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE",
+              "top": [
+                {
+                  "score": 0.6723497795134916,
+                  "episode": 2,
+                  "value": "M2"
+                },
+                {
+                  "score": 0.5563924630642121,
+                  "episode": 2,
+                  "value": "M2"
+                },
+                {
+                  "score": 0.5534668748471696,
+                  "episode": 2,
+                  "value": "0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_028",
+              "parameter": "text",
+              "gold": "Cybernetic Rhapsody",
+              "top": [
+                {
+                  "score": 1.9639007714892527,
+                  "episode": 1,
+                  "value": "AI"
+                },
+                {
+                  "score": 0.9226664599679777,
+                  "episode": 1,
+                  "value": 2025
+                },
+                {
+                  "score": 0.7811550969996328,
+                  "episode": 1,
+                  "value": 2025
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_056",
+              "parameter": "region",
+              "gold": "US",
+              "top": [
+                {
+                  "score": 1.0194922834060152,
+                  "episode": 4,
+                  "value": "Eren Yeager"
+                },
+                {
+                  "score": 0.9332683988164243,
+                  "episode": 4,
+                  "value": "Eren Yeager is the main protagonist of Attack on Titan. After witnessing the destruction of his hometown and the death of his mother at the hands of a Titan, he vows to eradicate all Titans. His journey evolves from vengeance to a deeper understanding of freedom, war, and the cyclical nature of hatred."
+                },
+                {
+                  "score": 0.8952943023626294,
+                  "episode": 4,
+                  "value": "Eren Yeager"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_067",
+              "parameter": "sign",
+              "gold": "leo",
+              "top": [
+                {
+                  "score": 1.9616842047817706,
+                  "episode": 0,
+                  "value": "ID"
+                },
+                {
+                  "score": 1.8156374839804574,
+                  "episode": 0,
+                  "value": "P001"
+                },
+                {
+                  "score": 1.8156374839804574,
+                  "episode": 0,
+                  "value": "ABC123"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 2,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 14880,
+          "train_groups": 78,
+          "learned": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.05,
+              "top3_all": 0.1,
+              "top5_all": 0.15,
+              "top1_given_covered": 0.05
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.1,
+              "top3_all": 0.45,
+              "top5_all": 0.65,
+              "top1_given_covered": 0.1
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.25,
+              "top3_all": 0.25,
+              "top5_all": 0.25,
+              "top1_given_covered": 1.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_003",
+              "parameter": "keyword",
+              "gold": "trendsetter",
+              "top": [
+                {
+                  "score": 0.8849102100193801,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": 0.4259056360789524,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": 0.4198853392677324,
+                  "episode": 2,
+                  "value": "Fashion & lifestyle | 1M+ followers"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_006",
+              "parameter": "page",
+              "gold": 1,
+              "top": [
+                {
+                  "score": 1.7413723613614152,
+                  "episode": 1,
+                  "value": "H4G8fb9A3eKt2LpO"
+                },
+                {
+                  "score": 1.6986763356167902,
+                  "episode": 1,
+                  "value": "mixed"
+                },
+                {
+                  "score": 1.6379222377711637,
+                  "episode": 1,
+                  "value": true
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_012",
+              "parameter": "phone",
+              "gold": "+14155552671",
+              "top": [
+                {
+                  "score": -0.47560525187369895,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -0.785485980275754,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": -1.0117529445315885,
+                  "episode": 0,
+                  "value": 9.4
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "latitude",
+              "gold": "34.0522",
+              "top": [
+                {
+                  "score": 0.28861463871377724,
+                  "episode": 3,
+                  "value": false
+                },
+                {
+                  "score": 0.2697178784936193,
+                  "episode": 3,
+                  "value": "Amelia"
+                },
+                {
+                  "score": 0.25928957473480796,
+                  "episode": 3,
+                  "value": 15500.0
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "longitude",
+              "gold": "-118.2437",
+              "top": [
+                {
+                  "score": 0.2708082623282694,
+                  "episode": 3,
+                  "value": false
+                },
+                {
+                  "score": 0.2665186049755105,
+                  "episode": 3,
+                  "value": "Amelia"
+                },
+                {
+                  "score": 0.22217159599534042,
+                  "episode": 3,
+                  "value": 15500.0
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_032",
+              "parameter": "domain",
+              "gold": "newsabouttech.com",
+              "top": [
+                {
+                  "score": 0.21834275063723063,
+                  "episode": 4,
+                  "value": "MP789"
+                },
+                {
+                  "score": 0.20186177918498904,
+                  "episode": 4,
+                  "value": "ID"
+                },
+                {
+                  "score": 0.009586470359114085,
+                  "episode": 4,
+                  "value": 78
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 3,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 15024,
+          "train_groups": 75,
+          "learned": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.5714285714285714,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.14285714285714285,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 0.9523809523809523,
+              "top1_all": 0.14285714285714285,
+              "top3_all": 0.19047619047619047,
+              "top5_all": 0.19047619047619047,
+              "top1_given_covered": 0.15
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.5714285714285714,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 0.9523809523809523,
+              "top1_all": 0.23809523809523808,
+              "top3_all": 0.3333333333333333,
+              "top5_all": 0.3333333333333333,
+              "top1_given_covered": 0.25
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_005",
+              "parameter": "url",
+              "gold": "https://www.facebook.com/video/example",
+              "top": [
+                {
+                  "score": -0.010722333952003504,
+                  "episode": 7,
+                  "value": "/workspace/Media"
+                },
+                {
+                  "score": -0.028173859282254243,
+                  "episode": 7,
+                  "value": "Media"
+                },
+                {
+                  "score": -0.06815736628381441,
+                  "episode": 7,
+                  "value": "success"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_008",
+              "parameter": "symbol",
+              "gold": "VFIAX",
+              "top": [
+                {
+                  "score": -0.7534098039867043,
+                  "episode": 5,
+                  "value": "success"
+                },
+                {
+                  "score": -1.0192205503573448,
+                  "episode": 6,
+                  "value": "VFIAX"
+                },
+                {
+                  "score": -1.0472903423681987,
+                  "episode": 6,
+                  "value": "1 to 5"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_010",
+              "parameter": "keyword",
+              "gold": "market capitalization",
+              "top": [
+                {
+                  "score": 0.5278692283920577,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": 0.4756929463265721,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": 0.26263275932397057,
+                  "episode": 0,
+                  "value": "AAPL"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_015",
+              "parameter": "pollutant",
+              "gold": "nitrous oxide",
+              "top": [
+                {
+                  "score": -0.0743419995177117,
+                  "episode": 2,
+                  "value": "U.S"
+                },
+                {
+                  "score": -0.4347107296043873,
+                  "episode": 2,
+                  "value": "B12"
+                },
+                {
+                  "score": -0.4347107296043873,
+                  "episode": 2,
+                  "value": "UV"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_016",
+              "parameter": "symbol",
+              "gold": "TSLA",
+              "top": [
+                {
+                  "score": 1.0527644746769722,
+                  "episode": 2,
+                  "value": "success"
+                },
+                {
+                  "score": 1.0198766606302363,
+                  "episode": 2,
+                  "value": 1
+                },
+                {
+                  "score": 0.8237707385493018,
+                  "episode": 2,
+                  "value": "Q1"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_019",
+              "parameter": "sign",
+              "gold": "aquarius",
+              "top": [
+                {
+                  "score": 0.9373512745809442,
+                  "episode": 2,
+                  "value": "AI"
+                },
+                {
+                  "score": 0.7517851743872874,
+                  "episode": 2,
+                  "value": "LAROI"
+                },
+                {
+                  "score": 0.6226640916519769,
+                  "episode": 2,
+                  "value": "LAROI"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 4,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 14928,
+          "train_groups": 79,
+          "learned": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.9444444444444444,
+              "top1_all": 0.1111111111111111,
+              "top3_all": 0.16666666666666666,
+              "top5_all": 0.16666666666666666,
+              "top1_given_covered": 0.11764705882352941
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.375,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.9444444444444444,
+              "top1_all": 0.2777777777777778,
+              "top3_all": 0.4444444444444444,
+              "top5_all": 0.4444444444444444,
+              "top1_given_covered": 0.29411764705882354
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.375,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_002",
+              "parameter": "game_type",
+              "gold": "regular season",
+              "top": [
+                {
+                  "score": 2.0494418635207525,
+                  "episode": 6,
+                  "value": "L01"
+                },
+                {
+                  "score": 2.0424440069325316,
+                  "episode": 6,
+                  "value": "CS103"
+                },
+                {
+                  "score": 2.0393324977979796,
+                  "episode": 2,
+                  "value": "PM"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_002",
+              "parameter": "sort_column",
+              "gold": "ERA",
+              "top": [
+                {
+                  "score": 3.674455201127407,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 3.531218447163025,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 2.364504170040248,
+                  "episode": 2,
+                  "value": "2024"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_002",
+              "parameter": "sports_code",
+              "gold": "MLB",
+              "top": [
+                {
+                  "score": 2.3570196753054136,
+                  "episode": 6,
+                  "value": "CS103"
+                },
+                {
+                  "score": 2.3555291184718996,
+                  "episode": 6,
+                  "value": "L01"
+                },
+                {
+                  "score": 2.3392367218885655,
+                  "episode": 6,
+                  "value": "CS102"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_007",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": 1.9460491988459556,
+                  "episode": 1,
+                  "value": "L.A"
+                },
+                {
+                  "score": 1.9460491988459556,
+                  "episode": 1,
+                  "value": "AMC"
+                },
+                {
+                  "score": 1.7984559230222867,
+                  "episode": 1,
+                  "value": "L.A"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_009",
+              "parameter": "slug",
+              "gold": "Golden_Rush",
+              "top": [
+                {
+                  "score": 1.7138464305241958,
+                  "episode": 4,
+                  "value": "PM"
+                },
+                {
+                  "score": 1.707898505668912,
+                  "episode": 3,
+                  "value": "ZXY123"
+                },
+                {
+                  "score": 1.6203063725692184,
+                  "episode": 3,
+                  "value": "ZXY123"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_035",
+              "parameter": "url",
+              "gold": "http://example.com/my-image.jpg",
+              "top": [
+                {
+                  "score": 1.8378813493721105,
+                  "episode": 1,
+                  "value": "NBA"
+                },
+                {
+                  "score": 1.829529793726036,
+                  "episode": 1,
+                  "value": "NBA"
+                },
+                {
+                  "score": 1.5263626283096532,
+                  "episode": 1,
+                  "value": "NBA"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "all_world": {
+      "summary": {
+        "learned": {
+          "explicit": {
+            "candidate_coverage": 0.9253594771241831,
+            "top1_all": 0.05210084033613445,
+            "top3_all": 0.06386554621848739,
+            "top5_all": 0.08674136321195144
+          },
+          "inferred": {
+            "candidate_coverage": 0.41620879120879123,
+            "top1_all": 0.0,
+            "top3_all": 0.025,
+            "top5_all": 0.04038461538461539
+          }
+        },
+        "raw": {
+          "explicit": {
+            "candidate_coverage": 0.9253594771241831,
+            "top1_all": 0.1842203548085901,
+            "top3_all": 0.31326797385620914,
+            "top5_all": 0.3532679738562091
+          },
+          "inferred": {
+            "candidate_coverage": 0.41620879120879123,
+            "top1_all": 0.09038461538461538,
+            "top3_all": 0.15576923076923077,
+            "top5_all": 0.15576923076923077
+          }
+        }
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.1,
+            0.0
+          ],
+          "pair_rows": 15648,
+          "train_groups": 83,
+          "learned": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.8823529411764706,
+              "top1_all": 0.11764705882352941,
+              "top3_all": 0.17647058823529413,
+              "top5_all": 0.23529411764705882,
+              "top1_given_covered": 0.13333333333333333
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.5,
+              "top1_all": 0.0,
+              "top3_all": 0.125,
+              "top5_all": 0.125,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 17,
+              "candidate_coverage": 0.8823529411764706,
+              "top1_all": 0.29411764705882354,
+              "top3_all": 0.29411764705882354,
+              "top5_all": 0.29411764705882354,
+              "top1_given_covered": 0.3333333333333333
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_013",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -0.7601848079330386,
+                  "episode": 0,
+                  "value": "JO"
+                },
+                {
+                  "score": -1.3814427837926435,
+                  "episode": 0,
+                  "value": "AAPL"
+                },
+                {
+                  "score": -1.4261230398955465,
+                  "episode": 3,
+                  "value": "CHATFS-REQ"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_017",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": -0.43490948317669975,
+                  "episode": 1,
+                  "value": "E-"
+                },
+                {
+                  "score": -0.5828522773115077,
+                  "episode": 0,
+                  "value": "MS"
+                },
+                {
+                  "score": -1.2340457059651135,
+                  "episode": 2,
+                  "value": "GDP"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "amount",
+              "gold": 500,
+              "top": [
+                {
+                  "score": 0.4371163401980671,
+                  "episode": 1,
+                  "value": "GR"
+                },
+                {
+                  "score": 0.06167596064449826,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": -0.004405036970227594,
+                  "episode": 1,
+                  "value": "MS"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_020",
+              "parameter": "campaignId",
+              "gold": "EcoCharge",
+              "top": [
+                {
+                  "score": -0.5682626627128363,
+                  "episode": 1,
+                  "value": "BG"
+                },
+                {
+                  "score": -0.6694472605836949,
+                  "episode": 1,
+                  "value": "MS"
+                },
+                {
+                  "score": -0.6694472605836949,
+                  "episode": 1,
+                  "value": "GR"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_022",
+              "parameter": "language",
+              "gold": "English",
+              "top": [
+                {
+                  "score": -0.142862221055282,
+                  "episode": 2,
+                  "value": "GR"
+                },
+                {
+                  "score": -0.3037011163626122,
+                  "episode": 1,
+                  "value": "online"
+                },
+                {
+                  "score": -0.41398651741063114,
+                  "episode": 1,
+                  "value": "success"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_043",
+              "parameter": "zpid",
+              "gold": "48749425",
+              "top": [
+                {
+                  "score": 0.3027030312823662,
+                  "episode": 3,
+                  "value": "POST"
+                },
+                {
+                  "score": 0.3027030312823662,
+                  "episode": 3,
+                  "value": "POST."
+                },
+                {
+                  "score": 0.02077910067646105,
+                  "episode": 2,
+                  "value": "US"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 1,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 17040,
+          "train_groups": 85,
+          "learned": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.8,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.38461538461538464,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.07692307692307693,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 15,
+              "candidate_coverage": 0.8,
+              "top1_all": 0.06666666666666667,
+              "top3_all": 0.2,
+              "top5_all": 0.2,
+              "top1_given_covered": 0.08333333333333333
+            },
+            "inferred": {
+              "n": 13,
+              "candidate_coverage": 0.38461538461538464,
+              "top1_all": 0.07692307692307693,
+              "top3_all": 0.15384615384615385,
+              "top5_all": 0.15384615384615385,
+              "top1_given_covered": 0.2
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_014",
+              "parameter": "shortcode",
+              "gold": "B8J9kHFSRm",
+              "top": [
+                {
+                  "score": 1.3542458930298835,
+                  "episode": 1,
+                  "value": "HLTV."
+                },
+                {
+                  "score": 0.9585181927441703,
+                  "episode": 1,
+                  "value": "CSGO"
+                },
+                {
+                  "score": 0.8009252050625344,
+                  "episode": 1,
+                  "value": "CSGO"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_025",
+              "parameter": "departure_date",
+              "gold": "10/20/2023",
+              "top": [
+                {
+                  "score": 0.9538957184445023,
+                  "episode": 2,
+                  "value": "W24"
+                },
+                {
+                  "score": 0.9417639367676758,
+                  "episode": 2,
+                  "value": "W25"
+                },
+                {
+                  "score": 0.9118920431594253,
+                  "episode": 1,
+                  "value": "CA"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_025",
+              "parameter": "destination",
+              "gold": "San Francisco",
+              "top": [
+                {
+                  "score": 0.6114266358348805,
+                  "episode": 1,
+                  "value": "CA"
+                },
+                {
+                  "score": 0.44969315143749977,
+                  "episode": 1,
+                  "value": "CA"
+                },
+                {
+                  "score": 0.4107271636828752,
+                  "episode": 4,
+                  "value": "New York City"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_025",
+              "parameter": "return_date",
+              "gold": "10/25/2023",
+              "top": [
+                {
+                  "score": 1.0499066988539354,
+                  "episode": 2,
+                  "value": "W25"
+                },
+                {
+                  "score": 1.0420001758585016,
+                  "episode": 2,
+                  "value": "W24"
+                },
+                {
+                  "score": 0.9492969286635722,
+                  "episode": 1,
+                  "value": "CA"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_026",
+              "parameter": "address",
+              "gold": "0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE",
+              "top": [
+                {
+                  "score": 0.6009048892637587,
+                  "episode": 6,
+                  "value": "NFL"
+                },
+                {
+                  "score": 0.5748406853759707,
+                  "episode": 0,
+                  "value": "PDF"
+                },
+                {
+                  "score": 0.4779907611552441,
+                  "episode": 6,
+                  "value": "ID"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_028",
+              "parameter": "text",
+              "gold": "Cybernetic Rhapsody",
+              "top": [
+                {
+                  "score": 1.3849568534873486,
+                  "episode": 1,
+                  "value": "AI"
+                },
+                {
+                  "score": 0.6201744596881947,
+                  "episode": 3,
+                  "value": "ID"
+                },
+                {
+                  "score": 0.5232922880448081,
+                  "episode": 0,
+                  "value": "DJ"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 2,
+          "focus_weights": [
+            0.0,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 15840,
+          "train_groups": 81,
+          "learned": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 20,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.1,
+              "top3_all": 0.35,
+              "top5_all": 0.55,
+              "top1_given_covered": 0.1
+            },
+            "inferred": {
+              "n": 4,
+              "candidate_coverage": 0.25,
+              "top1_all": 0.25,
+              "top3_all": 0.25,
+              "top5_all": 0.25,
+              "top1_given_covered": 1.0
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_003",
+              "parameter": "keyword",
+              "gold": "trendsetter",
+              "top": [
+                {
+                  "score": 2.0172529259607304,
+                  "episode": 1,
+                  "value": "AAPL"
+                },
+                {
+                  "score": 1.8853431801540468,
+                  "episode": 1,
+                  "value": "MSFT"
+                },
+                {
+                  "score": 1.8817924600681433,
+                  "episode": 1,
+                  "value": "EPS"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_006",
+              "parameter": "page",
+              "gold": 1,
+              "top": [
+                {
+                  "score": 1.3016958080791163,
+                  "episode": 1,
+                  "value": "H4G8fb9A3eKt2LpO"
+                },
+                {
+                  "score": 1.2231374069717167,
+                  "episode": 1,
+                  "value": "mixed"
+                },
+                {
+                  "score": 1.1548202819757027,
+                  "episode": 1,
+                  "value": true
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_012",
+              "parameter": "phone",
+              "gold": "+14155552671",
+              "top": [
+                {
+                  "score": -0.07839878186012167,
+                  "episode": 0,
+                  "value": 9.4
+                },
+                {
+                  "score": -0.0800668721947499,
+                  "episode": 0,
+                  "value": 42
+                },
+                {
+                  "score": -0.11424201203600964,
+                  "episode": 0,
+                  "value": "High-demand category with rapid turnover."
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "latitude",
+              "gold": "34.0522",
+              "top": [
+                {
+                  "score": 0.9696269364862125,
+                  "episode": 3,
+                  "value": false
+                },
+                {
+                  "score": 0.9483777964979843,
+                  "episode": 3,
+                  "value": "Amelia"
+                },
+                {
+                  "score": 0.9366513162003527,
+                  "episode": 3,
+                  "value": 15500.0
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_023",
+              "parameter": "longitude",
+              "gold": "-118.2437",
+              "top": [
+                {
+                  "score": 0.9306579808328876,
+                  "episode": 3,
+                  "value": false
+                },
+                {
+                  "score": 0.9258343217226301,
+                  "episode": 3,
+                  "value": "Amelia"
+                },
+                {
+                  "score": 0.8759667364381629,
+                  "episode": 3,
+                  "value": 15500.0
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_030",
+              "parameter": "symbol",
+              "gold": "AMZN",
+              "top": [
+                {
+                  "score": 0.6317842121204083,
+                  "episode": 1,
+                  "value": "success"
+                },
+                {
+                  "score": 0.1903753718860025,
+                  "episode": 1,
+                  "value": "1-10"
+                },
+                {
+                  "score": 0.18158729330320045,
+                  "episode": 1,
+                  "value": "2024-07-13"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 3,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 15600,
+          "train_groups": 77,
+          "learned": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.5714285714285714,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.14285714285714285,
+              "top3_all": 0.14285714285714285,
+              "top5_all": 0.14285714285714285,
+              "top1_given_covered": 0.14285714285714285
+            }
+          },
+          "raw": {
+            "inferred": {
+              "n": 7,
+              "candidate_coverage": 0.5714285714285714,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            },
+            "explicit": {
+              "n": 21,
+              "candidate_coverage": 1.0,
+              "top1_all": 0.23809523809523808,
+              "top3_all": 0.3333333333333333,
+              "top5_all": 0.3333333333333333,
+              "top1_given_covered": 0.23809523809523808
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_005",
+              "parameter": "url",
+              "gold": "https://www.facebook.com/video/example",
+              "top": [
+                {
+                  "score": 1.5255817324015393,
+                  "episode": 0,
+                  "value": "1234567890"
+                },
+                {
+                  "score": 1.5055819259143788,
+                  "episode": 0,
+                  "value": "success"
+                },
+                {
+                  "score": 1.469234627287066,
+                  "episode": 0,
+                  "value": "Visibility schedule updated successfully."
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_008",
+              "parameter": "symbol",
+              "gold": "VFIAX",
+              "top": [
+                {
+                  "score": 0.986274030166816,
+                  "episode": 4,
+                  "value": "archives"
+                },
+                {
+                  "score": 0.9401550141987223,
+                  "episode": 4,
+                  "value": "archives"
+                },
+                {
+                  "score": 0.9297695251327857,
+                  "episode": 4,
+                  "value": "success"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_010",
+              "parameter": "keyword",
+              "gold": "market capitalization",
+              "top": [
+                {
+                  "score": 0.3915405795097101,
+                  "episode": 4,
+                  "value": "Human character with strength 8 and intelligence 7 performing a dynamic victory dance."
+                },
+                {
+                  "score": 0.33136969719108256,
+                  "episode": 4,
+                  "value": "success"
+                },
+                {
+                  "score": 0.29512899548354643,
+                  "episode": 4,
+                  "value": "Alien character with agility 9 and intelligence 6 fluidly dodging laser beams with reactive motion."
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_015",
+              "parameter": "pollutant",
+              "gold": "nitrous oxide",
+              "top": [
+                {
+                  "score": 1.1857664803163857,
+                  "episode": 0,
+                  "value": "football"
+                },
+                {
+                  "score": 1.1012064688238872,
+                  "episode": 0,
+                  "value": "Liverpool"
+                },
+                {
+                  "score": 1.0828914651350083,
+                  "episode": 0,
+                  "value": "Manchester United"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_019",
+              "parameter": "sign",
+              "gold": "aquarius",
+              "top": [
+                {
+                  "score": 2.470521416508163,
+                  "episode": 1,
+                  "value": "R2"
+                },
+                {
+                  "score": 2.4640049798103876,
+                  "episode": 1,
+                  "value": "R3"
+                },
+                {
+                  "score": 2.461644079035415,
+                  "episode": 1,
+                  "value": "R1"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_021",
+              "parameter": "keyword",
+              "gold": "Halloween Festival",
+              "top": [
+                {
+                  "score": 1.5468945912951115,
+                  "episode": 0,
+                  "value": "XIV"
+                },
+                {
+                  "score": 1.2539315926802481,
+                  "episode": 0,
+                  "value": "XIV"
+                },
+                {
+                  "score": 1.2142501821413574,
+                  "episode": 0,
+                  "value": "The Endwalker Expansion Celebration Event is one of the most anticipated annual gatherings in the FFXIV community. It commemorates the release of the Endwalker expansion, featuring exclusive story content that ties into the game's overarching narrative, limited-time mounts and minions, and a special in-game concert featuring the game's iconic soundtrack. Many players organize community watch parties, cosplay events, and charity streams during this time, making it a cornerstone of FFXIV's social calendar."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fold": 4,
+          "focus_weights": [
+            0.25,
+            0.5,
+            0.0,
+            0.1
+          ],
+          "pair_rows": 15744,
+          "train_groups": 82,
+          "learned": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.9444444444444444,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.05555555555555555,
+              "top1_given_covered": 0.0
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.375,
+              "top1_all": 0.0,
+              "top3_all": 0.0,
+              "top5_all": 0.0,
+              "top1_given_covered": 0.0
+            }
+          },
+          "raw": {
+            "explicit": {
+              "n": 18,
+              "candidate_coverage": 0.9444444444444444,
+              "top1_all": 0.2222222222222222,
+              "top3_all": 0.3888888888888889,
+              "top5_all": 0.3888888888888889,
+              "top1_given_covered": 0.23529411764705882
+            },
+            "inferred": {
+              "n": 8,
+              "candidate_coverage": 0.375,
+              "top1_all": 0.125,
+              "top3_all": 0.25,
+              "top5_all": 0.25,
+              "top1_given_covered": 0.3333333333333333
+            }
+          },
+          "examples": [
+            {
+              "qa_id": "qa_002",
+              "parameter": "game_type",
+              "gold": "regular season",
+              "top": [
+                {
+                  "score": 2.399616457636087,
+                  "episode": 6,
+                  "value": "L01"
+                },
+                {
+                  "score": 2.3912081799727782,
+                  "episode": 6,
+                  "value": "CS103"
+                },
+                {
+                  "score": 2.38154053631146,
+                  "episode": 6,
+                  "value": "CS101"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_002",
+              "parameter": "sort_column",
+              "gold": "ERA",
+              "top": [
+                {
+                  "score": 2.325036402753956,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 2.131698849812187,
+                  "episode": 2,
+                  "value": "PM"
+                },
+                {
+                  "score": 1.9126975470984457,
+                  "episode": 6,
+                  "value": "L01"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_002",
+              "parameter": "sports_code",
+              "gold": "MLB",
+              "top": [
+                {
+                  "score": 3.2991130915814066,
+                  "episode": 6,
+                  "value": "CS103"
+                },
+                {
+                  "score": 3.2973221123621093,
+                  "episode": 6,
+                  "value": "L01"
+                },
+                {
+                  "score": 3.277745976077177,
+                  "episode": 6,
+                  "value": "CS102"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_007",
+              "parameter": "symbol",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": 1.9226170973023067,
+                  "episode": 1,
+                  "value": "L.A"
+                },
+                {
+                  "score": 1.9226170973023067,
+                  "episode": 1,
+                  "value": "AMC"
+                },
+                {
+                  "score": 1.7704655394542925,
+                  "episode": 1,
+                  "value": "AMC"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_009",
+              "parameter": "slug",
+              "gold": "Golden_Rush",
+              "top": [
+                {
+                  "score": 1.7804558887814115,
+                  "episode": 6,
+                  "value": "GB"
+                },
+                {
+                  "score": 1.7286793455073184,
+                  "episode": 4,
+                  "value": "PM"
+                },
+                {
+                  "score": 1.6997521794315338,
+                  "episode": 6,
+                  "value": "GB"
+                }
+              ]
+            },
+            {
+              "qa_id": "qa_011",
+              "parameter": "stock",
+              "gold": "AAPL",
+              "top": [
+                {
+                  "score": 1.435398251088229,
+                  "episode": 0,
+                  "value": "U.S"
+                },
+                {
+                  "score": 0.8446497836107296,
+                  "episode": 0,
+                  "value": "U.S"
+                },
+                {
+                  "score": 0.6148782971032702,
+                  "episode": 6,
+                  "value": "DC"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "comparison_targets": {
+    "world_ingest_explicit": 0.9340659340659341,
+    "world_ingest_inferred": 0.425,
+    "discourse_top3_explicit": 0.8892,
+    "discourse_top3_inferred": 0.4162,
+    "gold_node_field_top1_explicit": 0.4353,
+    "gold_node_field_top1_inferred": 0.4118
+  },
+  "repair_report": {
+    "stage": "Mem2Act answer-blind repaired session loader",
+    "qa_count": 400,
+    "released_session_count": 2029,
+    "counts": {
+      "released": 381,
+      "upstream_fallback": 10,
+      "empty_no_source_id": 9
+    },
+    "missing_upstream": [],
+    "all_qas_accounted_for": true,
+    "all_contexts_resolved_or_explicit_empty": true,
+    "guardrail": "Context repair uses only qa_id/source_conversation_ids and public conversation files. It never inspects tool_call arguments, grounding_info, evolution_chain, gold answers, or labels."
+  },
+  "guardrail": "Gold values only construct training labels and score held-out QA001-100 folds. Candidate payload values are never model features. Focus weights are selected on each training fold only. No QA101-400 gold is read."
+}
