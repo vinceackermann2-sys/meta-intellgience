@@ -1,16 +1,16 @@
-name: semantic-entity-anchor-oracle
+name: semantic-missing-inferred-audit
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchstrong/semantic_entity_anchor_oracle.py'
+      - 'researchstrong/semantic_missing_inferred_audit.py'
       - '.github/workflows/semantic-world-model.yml'
 permissions:
   contents: read
 jobs:
-  semantic-entity-anchor-oracle:
+  semantic-missing-inferred-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,14 +20,14 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
           python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
-      - name: Run semantic entity-anchor oracle
+      - name: Run missing inferred semantic-property audit
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_entity_anchor_oracle.py
+        run: python semantic_missing_inferred_audit.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: semantic-entity-anchor-oracle-result
-          path: researchstrong/semantic_entity_anchor_oracle_result.json
+          name: semantic-missing-inferred-audit-result
+          path: researchstrong/semantic_missing_inferred_audit_result.json
           retention-days: 30
