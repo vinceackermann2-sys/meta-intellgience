@@ -1,0 +1,33 @@
+name: semantic-focus-field-binding
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'researchstrong/semantic_focus_field_binding_cv.py'
+      - '.github/workflows/semantic-focus-field-binding.yml'
+permissions:
+  contents: read
+jobs:
+  focus-field-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU research dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
+      - name: Run focus-conditioned field binding CV
+        working-directory: researchstrong
+        env:
+          TOKENIZERS_PARALLELISM: 'false'
+        run: python semantic_focus_field_binding_cv.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semantic-focus-field-binding-result
+          path: researchstrong/semantic_focus_field_binding_cv_result.json
+          retention-days: 90
