@@ -1,17 +1,16 @@
-name: semantic-entity-hierarchy
+name: semantic-entity-hierarchy-smoke
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'researchstrong/semantic_entity_hierarchy_diagnostic.py'
-      - 'researchstrong/semantic_entity_hierarchy_diagnostic_v2.py'
+      - 'researchstrong/semantic_entity_hierarchy_smoke.py'
       - '.github/workflows/semantic-world-model.yml'
 permissions:
   contents: read
 jobs:
-  entity-hierarchy-diagnostic:
+  entity-hierarchy-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,14 +20,14 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
           python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers scikit-learn python-dateutil pycountry webcolors
-      - name: Run hierarchical semantic entity-record binding diagnostic
+      - name: Run 30-QA hierarchical semantic entity-record smoke
         working-directory: researchstrong
         env:
           TOKENIZERS_PARALLELISM: 'false'
-        run: python semantic_entity_hierarchy_diagnostic_v2.py
+        run: python semantic_entity_hierarchy_smoke.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: semantic-entity-hierarchy-result
-          path: researchstrong/semantic_entity_hierarchy_diagnostic_result.json
-          retention-days: 90
+          name: semantic-entity-hierarchy-smoke-result
+          path: researchstrong/semantic_entity_hierarchy_smoke_result.json
+          retention-days: 30
