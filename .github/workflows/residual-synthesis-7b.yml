@@ -1,0 +1,37 @@
+name: residual-synthesis-7b
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'research_semantic/residual_synthesis_7b.py'
+      - '.github/workflows/residual-synthesis-7b.yml'
+permissions:
+  contents: read
+jobs:
+  residual-synthesis-7b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libopenblas-dev
+          python -m pip install --disable-pip-version-check --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --disable-pip-version-check --no-cache-dir sentence-transformers huggingface_hub pycountry webcolors
+          CMAKE_ARGS='-DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS' python -m pip install --disable-pip-version-check --no-cache-dir llama-cpp-python
+      - name: Run 7B true-residual synthesis diagnostic
+        working-directory: research_semantic
+        env:
+          TOKENIZERS_PARALLELISM: 'false'
+          HF_HUB_DISABLE_TELEMETRY: '1'
+        run: python residual_synthesis_7b.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: residual-synthesis-7b-result
+          path: research_semantic/residual_synthesis_7b_result.json
+          retention-days: 90
