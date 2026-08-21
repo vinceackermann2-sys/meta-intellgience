@@ -1,18 +1,18 @@
 name: semantic-focus-field-binding
 on:
-  pull_request:
+  push:
     branches: [main]
-    paths:
-      - 'researchstrong/semantic_focus_field_binding_cv.py'
-      - '.github/workflows/semantic-focus-field-binding.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   focus-field-binding:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: research/semantic-world-model-20260820
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -25,9 +25,11 @@ jobs:
         env:
           TOKENIZERS_PARALLELISM: 'false'
         run: python semantic_focus_field_binding_cv.py
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: semantic-focus-field-binding-result
-          path: researchstrong/semantic_focus_field_binding_cv_result.json
-          retention-days: 90
+      - name: Persist research result to isolated branch
+        run: |
+          git config user.name 'research-actions'
+          git config user.email 'actions@users.noreply.github.com'
+          git add researchstrong/semantic_focus_field_binding_cv_result.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'research: record focus-field binding result'
+          git push origin HEAD:research/semantic-world-model-20260820
